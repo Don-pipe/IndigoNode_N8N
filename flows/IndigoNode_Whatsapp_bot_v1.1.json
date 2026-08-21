@@ -1,0 +1,609 @@
+{
+  "name": "IndigoNode_Whatsapp_bot_v1.1",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        -64
+      ],
+      "id": "fcecfa63-0679-47da-aefb-556ef292517f",
+      "name": "WhatsApp Trigger",
+      "webhookId": "46801fe1-9e41-4409-b864-1a058d8a019a",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "nuAba6Il8TWZtN5A",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7b11c2f4-8e43-4732-81a3-d5c1578a512a",
+              "leftValue": "={{ $json.messages && $json.messages.length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -672,
+        -64
+      ],
+      "id": "0a63ff6f-b4d9-4403-8f31-dc6d88c9e4f7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3dd54e81-1fbd-4699-b2ed-8bd3842f7a67",
+              "name": "phone_number_id",
+              "value": "={{ $('WhatsApp Trigger').item.json.metadata.phone_number_id }}",
+              "type": "string"
+            },
+            {
+              "id": "06230dfd-dc56-41b2-b9e8-017f59d0db5f",
+              "name": "wa_id",
+              "value": "={{ $('WhatsApp Trigger').item.json.contacts[0].wa_id }}",
+              "type": "string"
+            },
+            {
+              "id": "5100917b-5115-4c88-a31d-3c2f75cde899",
+              "name": "message",
+              "value": "={{ $('WhatsApp Trigger').item.json.messages[0].text.body }}",
+              "type": "string"
+            },
+            {
+              "id": "7c265f6c-bc62-458b-8f5f-b7e3dd907949",
+              "name": "Timestamp",
+              "value": "={{ $json.messages[0].timestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "d1c80d8f-ffd1-44a9-b340-59ffbf6becab",
+              "name": "Name",
+              "value": "={{ $json.contacts[0].profile.name }}",
+              "type": "string"
+            },
+            {
+              "id": "b0f30073-6c2b-4636-a108-6b34dc93d726",
+              "name": "user_id",
+              "value": "={{ $json.contacts[0].wa_id }}",
+              "type": "string"
+            },
+            {
+              "id": "a8c944d1-20ff-48fa-ba66-3fe77a0dd24e",
+              "name": "date",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "c1a2b3c4-d5e6-7890-abcd-ef1234567890",
+              "name": "whatsapp_message_id",
+              "value": "={{ $('WhatsApp Trigger').item.json.messages[0].id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -384,
+        -384
+      ],
+      "id": "0e3f21c4-3001-4bbb-b09c-1ed9e3afb5d8",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select *\nfrom tenant.v_automation_config\nwhere whatsapp_phone_number_id = $1\nlimit 1;",
+        "options": {
+          "queryReplacement": "={{ $('Edit Fields').item.json.phone_number_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -128,
+        -384
+      ],
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567891",
+      "name": "Get Tenant Config",
+      "credentials": {
+        "postgres": {
+          "id": "SUPABASE_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "tenant-found-check",
+              "leftValue": "={{ $json.tenant_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        128,
+        -384
+      ],
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678902",
+      "name": "If Tenant Found"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select *\nfrom messaging.record_inbound_message(\n  p_phone_number_id := $1,\n  p_wa_id := $2,\n  p_display_name := $3,\n  p_body := $4,\n  p_whatsapp_message_id := $5,\n  p_message_type := 'text'\n);",
+        "options": {
+          "queryReplacement": "={{ $('Edit Fields').item.json.phone_number_id }},={{ $('Edit Fields').item.json.wa_id }},={{ $('Edit Fields').item.json.Name }},={{ $('Edit Fields').item.json.message }},={{ $('Edit Fields').item.json.whatsapp_message_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        384,
+        -384
+      ],
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789013",
+      "name": "Record Inbound Message",
+      "credentials": {
+        "postgres": {
+          "id": "SUPABASE_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m1",
+              "name": "tenant_id",
+              "value": "={{ $('Get Tenant Config').item.json.tenant_id }}",
+              "type": "string"
+            },
+            {
+              "id": "m2",
+              "name": "tenant_name",
+              "value": "={{ $('Get Tenant Config').item.json.tenant_name }}",
+              "type": "string"
+            },
+            {
+              "id": "m3",
+              "name": "specialty",
+              "value": "={{ $('Get Tenant Config').item.json.specialty }}",
+              "type": "string"
+            },
+            {
+              "id": "m4",
+              "name": "service_fee",
+              "value": "={{ $('Get Tenant Config').item.json.service_fee }}",
+              "type": "string"
+            },
+            {
+              "id": "m5",
+              "name": "service_currency",
+              "value": "={{ $('Get Tenant Config').item.json.service_currency }}",
+              "type": "string"
+            },
+            {
+              "id": "m6",
+              "name": "address",
+              "value": "={{ $('Get Tenant Config').item.json.address }}",
+              "type": "string"
+            },
+            {
+              "id": "m7",
+              "name": "maps_url",
+              "value": "={{ $('Get Tenant Config').item.json.maps_url }}",
+              "type": "string"
+            },
+            {
+              "id": "m8",
+              "name": "office_hours_start",
+              "value": "={{ $('Get Tenant Config').item.json.business_metadata.office_hours_start || '09:00' }}",
+              "type": "string"
+            },
+            {
+              "id": "m9",
+              "name": "office_hours_end",
+              "value": "={{ $('Get Tenant Config').item.json.business_metadata.office_hours_end || '12:00' }}",
+              "type": "string"
+            },
+            {
+              "id": "m10",
+              "name": "phone_number_id",
+              "value": "={{ $('Edit Fields').item.json.phone_number_id }}",
+              "type": "string"
+            },
+            {
+              "id": "m11",
+              "name": "wa_id",
+              "value": "={{ $('Edit Fields').item.json.wa_id }}",
+              "type": "string"
+            },
+            {
+              "id": "m12",
+              "name": "Name",
+              "value": "={{ $('Edit Fields').item.json.Name }}",
+              "type": "string"
+            },
+            {
+              "id": "m13",
+              "name": "message",
+              "value": "={{ $('Edit Fields').item.json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "m14",
+              "name": "date",
+              "value": "={{ $('Edit Fields').item.json.date }}",
+              "type": "string"
+            },
+            {
+              "id": "m15",
+              "name": "user_id",
+              "value": "={{ $('Edit Fields').item.json.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "m16",
+              "name": "contact_id",
+              "value": "={{ $('Record Inbound Message').item.json.contact_id }}",
+              "type": "string"
+            },
+            {
+              "id": "m17",
+              "name": "conversation_id",
+              "value": "={{ $('Record Inbound Message').item.json.conversation_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        640,
+        -384
+      ],
+      "id": "d4e5f6a7-b8c9-0123-defa-234567890124",
+      "name": "Merge Context"
+    },
+    {
+      "parameters": {
+        "promptType": "=define",
+        "text": "=Eres el asistente de WhatsApp de {{ $json.tenant_name }}, {{ $json.specialty }}. Responde de forma amable, profesional, breve y natural.\n\nDATOS DEL NEGOCIO\nNombre: {{ $json.tenant_name }}\nEspecialidad: {{ $json.specialty }}\nConsulta: {{ $json.service_fee }} {{ $json.service_currency }}\nDirección: {{ $json.address }}\nHorario: {{ $json.office_hours_start }}–{{ $json.office_hours_end }}\nMaps: {{ $json.maps_url }}\n\nDATOS DEL CLIENTE\nNombre: {{ $json.Name }}\nMensaje: {{ $json.message }}\n\nREGLAS\n\n* Usa el nombre del cliente cuando esté disponible.\n* Responde solo con información proporcionada en este contexto. No inventes datos.\n* No des diagnósticos, tratamientos ni recomendaciones médicas.\n* No menciones información técnica, IDs, n8n, Supabase, APIs ni herramientas.\n* Mantén las respuestas cortas y apropiadas para WhatsApp.\n* Si el cliente solo solicita información, responde normalmente.\n* Si quiere agendar, solicita los datos que falten: nombre, fecha y hora.\n* No confirmes una cita hasta tener esos tres datos.\n* Verifica que la fecha y hora estén dentro del horario del consultorio.\n* Cuando tengas todos los datos, crea el evento mediante Google Calendar.\n* Solo confirma la cita después de recibir confirmación de Google Calendar.\n* Si el horario no está disponible, ofrece solicitar otro horario.\n* No crees citas si el cliente no ha solicitado agendar.\n\nEVENTO DE CALENDAR\nIncluye: nombre del paciente, fecha, hora, doctor, especialidad, WhatsApp, costo y dirección.\n\nDevuelve únicamente el mensaje que debe recibir el cliente.\n\nNota: usa el año actual según {{ $json.date }}.\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        896,
+        -384
+      ],
+      "id": "e94ae7bd-a2e7-43f1-af3c-d7c569a7b4c3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Merge Context').item.json.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('Merge Context').item.json.wa_id }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1152,
+        -384
+      ],
+      "id": "af43a044-2478-47fc-9b4e-d280d303ba41",
+      "name": "Send message",
+      "webhookId": "fd017b13-0e51-4025-8030-d4289a8a019a",
+      "executeOnce": false,
+      "credentials": {
+        "whatsAppApi": {
+          "id": "MKK8kfFDJVZVP9b4",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into messaging.messages (\n  tenant_id,\n  conversation_id,\n  contact_id,\n  direction,\n  message_type,\n  body,\n  status,\n  sent_at\n)\nvalues (\n  $1::uuid,\n  $2::uuid,\n  $3::uuid,\n  'outbound',\n  'text',\n  $4,\n  'sent',\n  now()\n)\nreturning id;",
+        "options": {
+          "queryReplacement": "={{ $('Merge Context').item.json.tenant_id }},={{ $('Merge Context').item.json.conversation_id }},={{ $('Merge Context').item.json.contact_id }},={{ $('AI Agent').item.json.output }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1408,
+        -384
+      ],
+      "id": "e5f6a7b8-c9d0-1234-efab-345678901235",
+      "name": "Record Outbound Message",
+      "credentials": {
+        "postgres": {
+          "id": "SUPABASE_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.6-luna",
+          "mode": "list",
+          "cachedResultName": "gpt-5.6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        704,
+        -144
+      ],
+      "id": "20f1be1c-3c2a-4593-acf2-6305b55861f1",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "tQz45TsOiTErxDLb",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Merge Context').item.json.user_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        896,
+        -144
+      ],
+      "id": "74ac5d24-1a91-45d2-adfa-12486f758500",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "=Cita para {{ $('Merge Context').item.json.Name }}",
+        "calendar": {
+          "__rl": true,
+          "value": "37ebcac507f299c1de41e49af7883046b274aa93c1538705f70ce243ae1c340d@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "IndigoNode"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', `Fecha y hora de inicio de la cita en formato ISO 8601`, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', `Fecha y hora de finalización de la cita en formato ISO 8601`, 'string') }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1088,
+        -144
+      ],
+      "id": "345dca4c-ae84-409a-bca6-60bc208facd7",
+      "name": "Create an event in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "qqeKAF7aUF7d4w8j",
+          "name": "Google Calendar account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Get Tenant Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tenant Config": {
+      "main": [
+        [
+          {
+            "node": "If Tenant Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Tenant Found": {
+      "main": [
+        [
+          {
+            "node": "Record Inbound Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Inbound Message": {
+      "main": [
+        [
+          {
+            "node": "Merge Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Context": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message": {
+      "main": [
+        [
+          {
+            "node": "Record Outbound Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "America/La_Paz",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "v1.1-supabase-integration",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "804064df9df8420901f62da4b407ae41e4326deffbd0faa5e9065e071af38215"
+  },
+  "nodeGroups": [],
+  "tags": []
+}

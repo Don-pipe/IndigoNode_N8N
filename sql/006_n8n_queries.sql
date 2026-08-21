@@ -1,85 +1,89 @@
 -- White Node / IndigoNode
--- Run order: reference only (do not execute as migration)
--- Purpose: n8n query examples for tenant lookup and message storage
+-- Reference only — copy into n8n (DO NOT run this file in Supabase)
+-- Memory: conversation summaries only (no raw messages)
 
--- ---------------------------------------------------------------------------
--- 1) Lookup tenant config by WhatsApp business line
--- Use phone_number_id from webhook metadata (NOT patient wa_id)
--- ---------------------------------------------------------------------------
+-- =============================================================================
+-- FLOW ORDER
+-- =============================================================================
+-- Important WPP message fields
+--   → Get tenant configuration
+--   → Active verification
+--   → Get Message Summary               (Postgres)
+--   → AI Agent
+--   → Code in JavaScript                (splits reply + summary from output string)
+--   → Send message
+--   → Update Conversation Summary       (Postgres)
+
+-- AI Agent returns JSON: {"reply":"...","summary":"..."}
+-- Remove: Simple Memory, Google Calendar, second OpenAI node
+
+-- =============================================================================
+-- POSTGRES: Get Conversation Summary
+-- After Active verification (true branch)
+-- =============================================================================
 select *
-from tenant.v_automation_config
-where whatsapp_phone_number_id = :phone_number_id
-limit 1;
-
--- n8n Supabase node:
--- View: tenant.v_automation_config
--- Filter: whatsapp_phone_number_id = eq.{{ $('Edit Fields').item.json.phone_number_id }}
--- Limit: 1
-
--- ---------------------------------------------------------------------------
--- 2) Record inbound message (recommended: Postgres node / RPC)
--- Creates/updates contact + conversation and inserts inbound message
--- ---------------------------------------------------------------------------
-select *
-from messaging.record_inbound_message(
-  p_phone_number_id := :phone_number_id,
-  p_wa_id := :wa_id,
-  p_display_name := :display_name,
-  p_body := :message_body,
-  p_whatsapp_message_id := :whatsapp_message_id,
-  p_message_type := 'text',
-  p_raw_payload := :raw_payload::jsonb,
-  p_sent_at := :sent_at::timestamptz
+from messaging.get_conversation_summary(
+  p_tenant_id := '{{ $('Get tenant configuration').item.json.tenant_id }}'::uuid,
+  p_wa_id := '{{ $('Important WPP message fields').item.json.wa_id }}',
+  p_phone_number_id := '{{ $('Important WPP message fields').item.json.phone_number_id }}',
+  p_display_name := '{{ $('Important WPP message fields').item.json.Name }}'
 );
 
--- n8n expression examples:
--- :phone_number_id -> {{ $('Edit Fields').item.json.phone_number_id }}
--- :wa_id -> {{ $('Edit Fields').item.json.wa_id }}
--- :display_name -> {{ $('Edit Fields').item.json.Name }}
--- :message_body -> {{ $('Edit Fields').item.json.message }}
--- :whatsapp_message_id -> {{ $('WhatsApp Trigger').item.json.messages[0].id }}
+-- =============================================================================
+-- AI AGENT PROMPT — add these blocks
+-- =============================================================================
+-- RESUMEN PREVIO:
+-- {{ $('Get Conversation Summary').item.json.summary }}
+--
+-- MENSAJE ACTUAL:
+-- {{ $('Important WPP message fields').item.json.message }}
+--
+-- (Keep your tenant fields from Get tenant configuration via $json.*)
 
--- ---------------------------------------------------------------------------
--- 3) Store outbound message after AI response
--- Run after Send message node (or before, depending on your flow)
--- ---------------------------------------------------------------------------
-insert into messaging.messages (
-  tenant_id,
-  conversation_id,
-  contact_id,
-  direction,
-  message_type,
-  body,
-  status,
-  sent_at
-)
-values (
-  :tenant_id,
-  :conversation_id,
-  :contact_id,
-  'outbound',
-  'text',
-  :agent_output,
-  'sent',
-  now()
-)
-returning id;
+-- =============================================================================
+-- AI AGENT — append to prompt (single call for reply + summary)
+-- =============================================================================
+-- FORMATO DE RESPUESTA (OBLIGATORIO)
+-- Responde ÚNICAMENTE con JSON válido, sin markdown:
+-- {"reply":"mensaje para WhatsApp","summary":"resumen actualizado en 2-4 oraciones"}
 
--- Also update conversation timestamp:
--- update messaging.conversations
--- set last_message_at = now(), updated_at = now()
--- where id = :conversation_id;
+-- =============================================================================
+-- CODE NODE: Parse Agent Response (JavaScript, after AI Agent)
+-- =============================================================================
+-- const raw = $input.first().json.output ?? '';
+-- const previousSummary = $('Get Message Summary').first().json.summary ?? '';
+--
+-- let reply = raw;
+-- let summary = previousSummary;
+--
+-- try {
+--   const cleaned = raw.replace(/```json\n?|```/g, '').trim();
+--   const parsed = JSON.parse(cleaned);
+--   reply = parsed.reply ?? raw;
+--   summary = parsed.summary ?? previousSummary;
+-- } catch (error) {
+--   reply = raw;
+--   summary = previousSummary;
+-- }
+--
+-- return [{ json: { reply, summary } }];
+--
+-- Send message uses: {{ $json.reply }}
+-- Update summary uses: {{ $('Code in JavaScript').item.json.summary }}
+-- Note: node names in $('...') must match your canvas exactly.
 
--- ---------------------------------------------------------------------------
--- 4) Read recent conversation history for a contact
--- ---------------------------------------------------------------------------
-select
-  m.direction,
-  m.message_type,
-  m.body,
-  m.created_at
-from messaging.messages m
-where m.tenant_id = :tenant_id
-  and m.contact_id = :contact_id
-order by m.created_at desc
-limit 20;
+-- =============================================================================
+-- POSTGRES: Update Conversation Summary (after Send message)
+-- =============================================================================
+select messaging.update_conversation_summary(
+  '{{ $('Get Message Summary').item.json.conversation_id }}'::uuid,
+  '{{ $('Code in JavaScript').item.json.summary }}'
+) as summary_updated_at;
+
+-- =============================================================================
+-- VERIFY in Supabase SQL Editor
+-- =============================================================================
+-- select c.summary, c.summary_updated_at, ct.wa_id, ct.display_name
+-- from messaging.conversations c
+-- join messaging.contacts ct on ct.id = c.contact_id
+-- order by c.summary_updated_at desc nulls last;
