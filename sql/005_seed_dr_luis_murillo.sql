@@ -1,19 +1,20 @@
 -- White Node / IndigoNode
--- Run order: 4
+-- Run order: 5
 -- Purpose: Seed first tenant (Dr. Luis Felipe Murillo)
 --
 -- BEFORE RUNNING:
 -- 1. Replace YOUR_META_PHONE_NUMBER_ID_HERE with metadata.phone_number_id from n8n
--- 2. Replace +591XXXXXXXX with the doctor's WhatsApp business number
+-- 2. Replace +591XXXXXXXX with the tenant WhatsApp business number
 
 do $$
 declare
   v_tenant_id uuid;
 begin
-  insert into tenant.tenants (slug, display_name, specialty)
-  values ('dr-luis-murillo', 'Dr. Luis Felipe Murillo', 'Neurología')
+  insert into tenant.tenants (slug, display_name, business_type, specialty)
+  values ('dr-luis-murillo', 'Dr. Luis Felipe Murillo', 'doctor', 'Neurología')
   on conflict (slug) do update
     set display_name = excluded.display_name,
+        business_type = excluded.business_type,
         specialty = excluded.specialty,
         is_active = true,
         updated_at = now()
@@ -27,31 +28,28 @@ begin
 
   insert into tenant.business_profiles (
     tenant_id,
-    consultation_fee,
-    consultation_currency,
+    service_fee,
+    service_currency,
     address,
-    office_hours_start,
-    office_hours_end,
     timezone,
-    maps_url
+    maps_url,
+    metadata
   ) values (
     v_tenant_id,
     300,
     'BOB',
     'Calle Papa León XIII',
-    '09:00',
-    '12:00',
     'America/La_Paz',
-    'https://maps.app.goo.gl/LqGRvjm85YP29LGr9'
+    'https://maps.app.goo.gl/LqGRvjm85YP29LGr9',
+    '{"office_hours_start":"09:00","office_hours_end":"12:00"}'::jsonb
   )
   on conflict (tenant_id) do update
-    set consultation_fee = excluded.consultation_fee,
-        consultation_currency = excluded.consultation_currency,
+    set service_fee = excluded.service_fee,
+        service_currency = excluded.service_currency,
         address = excluded.address,
-        office_hours_start = excluded.office_hours_start,
-        office_hours_end = excluded.office_hours_end,
         timezone = excluded.timezone,
         maps_url = excluded.maps_url,
+        metadata = excluded.metadata,
         updated_at = now();
 
   insert into tenant.whatsapp_accounts (
@@ -71,18 +69,6 @@ begin
     set tenant_id = excluded.tenant_id,
         whatsapp_business_number = excluded.whatsapp_business_number,
         is_primary = excluded.is_primary,
-        is_active = excluded.is_active,
-        updated_at = now();
-
-  insert into tenant.integrations (tenant_id, provider, external_id, is_active)
-  values (
-    v_tenant_id,
-    'google_calendar',
-    '37ebcac507f299c1de41e49af7883046b274aa93c1538705f70ce243ae1c340d@group.calendar.google.com',
-    true
-  )
-  on conflict (tenant_id, provider) do update
-    set external_id = excluded.external_id,
         is_active = excluded.is_active,
         updated_at = now();
 end $$;
