@@ -6,6 +6,7 @@
 -- FLOW ORDER
 -- =============================================================================
 -- Important WPP message fields
+--   → Is text message? (IF)              true → continue | false → reply + stop
 --   → Get tenant configuration
 --   → Active verification
 --   → Get Message Summary               (Postgres)
@@ -21,9 +22,14 @@
 -- POSTGRES: Get Conversation Summary
 -- After Active verification (true branch)
 -- =============================================================================
-select *
+select
+  contact_id,
+  conversation_id,
+  summary,
+  summary_updated_at,
+  message_count
 from messaging.get_conversation_summary(
-  p_tenant_id := '{{ $('Get tenant configuration').item.json.tenant_id }}'::uuid,
+  p_tenant_id := '{{ $json.tenant_id }}'::uuid,
   p_wa_id := '{{ $('Important WPP message fields').item.json.wa_id }}',
   p_phone_number_id := '{{ $('Important WPP message fields').item.json.phone_number_id }}',
   p_display_name := '{{ $('Important WPP message fields').item.json.Name }}'
@@ -87,3 +93,27 @@ select messaging.update_conversation_summary(
 -- from messaging.conversations c
 -- join messaging.contacts ct on ct.id = c.contact_id
 -- order by c.summary_updated_at desc nulls last;
+
+-- =============================================================================
+-- SET: Important WPP message fields — add these assignments
+-- =============================================================================
+-- message_type = {{ $('WhatsApp Trigger').item.json.messages[0].type }}
+-- image        = {{ $('WhatsApp Trigger').item.json.messages[0].image ?? null }}
+-- sticker      = {{ $('WhatsApp Trigger').item.json.messages[0].sticker ?? null }}
+
+-- =============================================================================
+-- IF: Is text message? (after Important WPP message fields)
+-- Proceed only when image AND sticker are null/empty (text conversation).
+-- Do NOT use .toJsonString() on null — it throws an error.
+-- =============================================================================
+-- Option A (recommended — one condition):
+--   leftValue: {{ !$json.image && !$json.sticker }}
+--   operator:  boolean → is true
+--
+-- Option B (two conditions, combinator AND):
+--   {{ $json.image }}   → is empty
+--   {{ $json.sticker }} → is empty
+--
+-- TRUE branch  → Get tenant configuration (normal AI flow)
+-- FALSE branch → Send message (no AI), e.g.:
+--   "Por ahora solo puedo leer mensajes de texto. Escribe tu consulta."
