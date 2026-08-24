@@ -53,7 +53,7 @@
 
 ### 3.3 n8n | Wire Postgres nodes in the workflow
 
-Import [`IndigoNode_Whatsapp_bot_v1.4.json`](../../flows/IndigoNode_Whatsapp_bot_v1.4.json) or add three **Postgres** nodes manually. Link each to the credential from **Step 3.2**.
+Import [`IndigoNode_Whatsapp_bot_v1.5.json`](../../flows/IndigoNode_Whatsapp_bot_v1.5.json) or add three **Postgres** nodes manually. Link each to the credential from **Step 3.2**.
 
 | Node name | Purpose |
 |-----------|---------|

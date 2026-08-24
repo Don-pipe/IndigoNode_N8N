@@ -556,7 +556,7 @@ Production credentials and production WhatsApp numbers should not be casually us
 
 n8n is the **orchestration layer**, not the database.
 
-**Production workflow (v1.4):** `IndigoNode_Whatsapp_bot_v1.4_v2` — see [whatsapp_bot.md](../whatsapp_bot.md).
+**Production workflow (v1.5):** `IndigoNode_Whatsapp_bot_v1.5` — multi-location routing. See [whatsapp_bot.md](../whatsapp_bot.md).
 
 Implemented flow:
 
@@ -574,29 +574,36 @@ Messages Type (IF)       ← text vs image
       └─ text
             │
             ▼
-      Get tenant configuration     ← tenant.v_automation_config
+      Process routing              ← messaging_channels.process_inbound_routing
             │
             ▼
-      Get Message Summary          ← messaging_channels.get_conversation_summary
+      Needs location menu?
             │
-            ▼
-      Active verification          ← tenant active + message_count < 30
+            ├─ yes → welcome + numbered location list (no AI)
             │
-            ├─ over limit → fixed handoff message
-            │
-            └─ OK
+            └─ no (location chosen)
                   │
                   ▼
-              AI Agent (OpenAI)      ← no LangChain Simple Memory
+            Get tenant configuration     ← tenant.v_automation_config_all
                   │
                   ▼
-              Code in JavaScript     ← parse { reply, summary }
+            Active verification          ← tenant active + message_count < 30
                   │
-                  ▼
-              Send message (WhatsApp)
+                  ├─ over limit → fixed handoff message
                   │
-                  ▼
-              Update Conversation Summary  ← messaging_channels.update_conversation_summary
+                  └─ OK
+                        │
+                        ▼
+                    AI Agent (OpenAI)      ← no LangChain Simple Memory
+                        │
+                        ▼
+                    Code in JavaScript     ← parse { reply, summary }
+                        │
+                        ▼
+                    Send message (WhatsApp)
+                        │
+                        ▼
+                    Update Conversation Summary  ← messaging_channels.update_conversation_summary
 ```
 
 Business data persists in PostgreSQL. n8n holds credentials (WhatsApp OAuth, WhatsApp API token, Postgres pooler, OpenAI) — never commit tokens to git.
@@ -678,8 +685,8 @@ End-to-end WhatsApp automation is **working in production** for the first tenant
 
 | Item | Status |
 |------|--------|
-| Database v2 (`tenant` + `messaging_channels`) | **Complete** — SQL `014`–`018` applied |
-| n8n workflow cutover | **Complete** — v1.4 on v2 functions/view |
+| Database v2 (`tenant` + `messaging_channels`) | **Complete** — SQL `014`–`020` applied |
+| n8n workflow cutover | **Complete** — v1.5 multi-location routing |
 | Meta + n8n onboarding runbooks | **Documented** in `docs/guidance/` |
 | Production POC tenant | **Dr. Luis Felipe Murillo** |
 
@@ -694,16 +701,17 @@ End-to-end WhatsApp automation is **working in production** for the first tenant
 
 ## What v1 delivers today
 
-* Inbound WhatsApp text → AI reply in Spanish (professional, no medical advice)
+* Inbound WhatsApp text → brand welcome + location menu (when multiple offices) → AI reply in Spanish
 * Tenant lookup by Meta `phone_number_id`
+* Patient location choice persisted in `messaging_channels.routing_sessions`
 * Postgres rolling conversation summary (replaces LangChain memory)
 * 30 messages / 24h per conversation rate limit
 * Image messages → fixed “describe the content” reply (no AI)
-* Business config from DB: name, specialty, fee, address, hours, maps URL
+* Business config from DB per selected location: name, specialty, fee, address, hours, maps URL
 
 ## v1 known limitations
 
-* **One WhatsApp line → one active business** — `whatsapp_phone_number_id` maps to a single `business_id` via `whatsapp_accounts`. Two offices on the same number with different prices requires a product decision (not supported in v1).
+* **`whatsapp_accounts.business_id`** is legacy/default only — routing uses `routing_sessions.selected_business_id` after the patient picks a location.
 * **`knowledge_text`** exists in the view but is not yet wired into the AI prompt.
 * **Stickers** follow the text path (only images are branched).
 * **WhatsApp Business Coexistence** (doctor keeps using the mobile app on the same number) remains a **future** goal — current onboarding uses Meta Business Suite + Cloud API (do **not** register the number in the standalone WhatsApp Business app during setup).
@@ -714,7 +722,7 @@ End-to-end WhatsApp automation is **working in production** for the first tenant
 * Wire `knowledge_text` into AI Agent prompt
 * Sticker branch on Messages Type
 * Parameterize summary SQL expressions
-* Move Active verification before Get Message Summary (ordering cleanup)
+* Reset routing session command (e.g. patient types "cambiar sede")
 
 ## Still planned (post-v1)
 

@@ -637,7 +637,7 @@ from tenant.whatsapp_accounts;
 
 ## Notes
 
-- Production flow today: `flows/IndigoNode_Whatsapp_bot_v1.3.json`
+- Production flow today: `flows/IndigoNode_Whatsapp_bot_v1.5.json` (archived: `flows/older version/`)
 - Memory today: `messaging.conversations.summary` → migrates to `**messaging_channels.conversations**`
 - **Do not run `013` in Supabase until v2 tables exist and data is migrated**
 
@@ -758,7 +758,7 @@ order by last_message_at desc nulls last;
 
 > **Do not start this section until Phase 3 in [migration_plan_v2.md](./migration_plan_v2.md) passes.**
 
-Open **`IndigoNode_Whatsapp_bot_v1.4`**. Baseline export: [`flows/IndigoNode_Whatsapp_bot_v1.4.json`](../../flows/IndigoNode_Whatsapp_bot_v1.4.json).
+Open **`IndigoNode_Whatsapp_bot_v1.5`**. Baseline export: [`flows/IndigoNode_Whatsapp_bot_v1.5.json`](../../flows/IndigoNode_Whatsapp_bot_v1.5.json). Older flows: [`flows/older version/`](../../flows/older%20version/).
 
 ### 4.1 Whatsapp fields (Set node)
 

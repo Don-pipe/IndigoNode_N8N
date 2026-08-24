@@ -3,7 +3,7 @@
 **Canonical reference:** [Supabase.md](../Supabase.md)  
 **Design reference:** [supabase_db_design.md](./supabase_db_design.md)  
 **Project:** IndigoNode WhatsApp Agent · **Date:** 2026-08-24  
-**Production workflow:** [`flows/IndigoNode_Whatsapp_bot_v1.4_v2.json`](../../flows/IndigoNode_Whatsapp_bot_v1.4_v2.json) (post-migration)
+**Production workflow:** [`flows/IndigoNode_Whatsapp_bot_v1.5.json`](../../flows/IndigoNode_Whatsapp_bot_v1.5.json) (multi-location routing)
 
 ---
 

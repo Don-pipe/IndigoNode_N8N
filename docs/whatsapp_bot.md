@@ -1,8 +1,8 @@
 # WhatsApp Bot — n8n Workflow
 
-**Workflow file:** [`flows/IndigoNode_Whatsapp_bot_v1.4.json`](../flows/IndigoNode_Whatsapp_bot_v1.4.json)  
-**Also exported as:** [`flows/IndigoNode_Whatsapp_bot_v1.4_v2.json`](../flows/IndigoNode_Whatsapp_bot_v1.4_v2.json) (same content)  
-**Internal n8n name:** `IndigoNode_Whatsapp_bot_v1.4_v2`  
+**Workflow file:** [`flows/IndigoNode_Whatsapp_bot_v1.5.json`](../flows/IndigoNode_Whatsapp_bot_v1.5.json)  
+**Previous:** [`flows/older version/IndigoNode_Whatsapp_bot_v1.4_v2.json`](../flows/older%20version/IndigoNode_Whatsapp_bot_v1.4_v2.json) (single-location only)  
+**Internal n8n name:** `IndigoNode_Whatsapp_bot_v1.5`  
 **Prerequisite:** [whatsapp_trigger_config.md](./guidance/whatsapp_trigger_config.md) → [supabase_postgres_node_config.md](./guidance/supabase_postgres_node_config.md)  
 **Database:** Supabase Postgres — see [Supabase.md](./Supabase.md)  
 **Timezone:** `America/La_Paz`
@@ -13,12 +13,13 @@
 
 IndigoNode's production WhatsApp assistant for tenant businesses (currently **Dr. Luis Felipe Murillo**). When a patient sends a WhatsApp message to a connected business line:
 
-1. **Identifies** which tenant/business owns the WhatsApp number
-2. **Loads or creates** a conversation record with rolling AI memory (Postgres summary)
-3. **Checks** tenant is active and the sender has not exceeded 30 messages in 24 hours
-4. **Generates** a short, professional reply using OpenAI
-5. **Sends** the reply on WhatsApp
-6. **Saves** an updated conversation summary back to Postgres
+1. **Identifies** which tenant owns the WhatsApp number
+2. **Routes** the patient to a location when the tenant has multiple businesses (numbered menu)
+3. **Loads or creates** a conversation record with rolling AI memory (Postgres summary)
+4. **Checks** tenant is active and the sender has not exceeded 30 messages in 24 hours
+5. **Generates** a short, professional reply using OpenAI (for the **selected** location)
+6. **Sends** the reply on WhatsApp
+7. **Saves** an updated conversation summary back to Postgres
 
 **Non-text messages** (images) get a fixed reply asking the user to describe the content — no AI call.  
 **Rate-limited users** (>30 messages in 24h) get a fixed handoff message — no AI call.
@@ -46,32 +47,39 @@ Messages Type            ← text vs image?
     └─ TRUE (text)
            │
            ▼
-       Get tenant configuration     ← tenant.v_automation_config
+       Process routing              ← messaging_channels.process_inbound_routing
            │
            ▼
-       Get Message Summary          ← messaging_channels.get_conversation_summary
+       Needs location menu?
            │
-           ▼
-       Active verification           ← tenant active + message_count < 30
+           ├─ TRUE ──► Location menu ──► Send location menu ──► END
            │
-           ├─ FALSE ──► To many messages handler ──► END
-           │
-           └─ TRUE
+           └─ FALSE (location already chosen)
                   │
                   ▼
-              AI Agent (+ OpenAI Chat Model)
+              Get tenant configuration     ← tenant.v_automation_config_all + selected_business_id
                   │
                   ▼
-              Code in JavaScript      ← parse { reply, summary } JSON
+              Active verification           ← tenant active + message_count < 30
                   │
-                  ▼
-              Send message            ← WhatsApp reply to patient
+                  ├─ FALSE ──► To many messages handler ──► END
                   │
-                  ▼
-              Update Conversation Summary  ← messaging_channels.update_conversation_summary
-                  │
-                  ▼
-                 END
+                  └─ TRUE
+                         │
+                         ▼
+                     AI Agent (+ OpenAI Chat Model)
+                         │
+                         ▼
+                     Code in JavaScript      ← parse { reply, summary } JSON
+                         │
+                         ▼
+                     Send message            ← WhatsApp reply to patient
+                         │
+                         ▼
+                     Update Conversation Summary  ← messaging_channels.update_conversation_summary
+                         │
+                         ▼
+                        END
 ```
 
 ---
@@ -81,8 +89,8 @@ Messages Type            ← text vs image?
 | Credential | Used by |
 |------------|---------|
 | WhatsApp OAuth account | WhatsApp Trigger |
-| WhatsApp account | Send message, Image Message Handler, To many messages handler |
-| Postgres account whatsapp bot project | Get tenant configuration, Get Message Summary, Update Conversation Summary |
+| WhatsApp account | Send message, Send location menu, Image Message Handler, To many messages handler |
+| Postgres account whatsapp bot project | Process routing, Get tenant configuration, Update Conversation Summary |
 | OpenAI account | OpenAI Chat Model |
 
 Postgres connects to Supabase via **session pooler** (not Supabase REST node).
@@ -137,99 +145,121 @@ Normalizes webhook data into fields used by downstream nodes.
 
 | Branch | Path |
 |--------|------|
-| **TRUE** | Text path → Get tenant configuration → AI flow |
+| **TRUE** | Text path → Process routing → location menu or AI flow |
 | **FALSE** | Image Message Handler (fixed reply, no AI) |
 
 Currently checks **image only** — stickers follow the text path if `image` is empty.
 
 ---
 
-### 5. Get tenant configuration (Postgres)
+### 5. Process routing (Postgres)
 
-Loads tenant + business config for the WhatsApp line that received the message.
+Resolves tenant, location choice, and conversation memory in one call. Entry point for multi-location routing (SQL `020`).
 
 ```sql
 select *
-from tenant.v_automation_config
-where whatsapp_phone_number_id = '{{ $json.phone_number_id }}'
+from messaging_channels.process_inbound_routing(
+  p_channel := 'whatsapp',
+  p_channel_endpoint_id := '{{ $('Whatsapp fields').item.json.phone_number_id }}',
+  p_external_id := '{{ $('Whatsapp fields').item.json.wa_id }}',
+  p_display_name := '{{ $('Whatsapp fields').item.json.Name }}',
+  p_message := '{{ $('Whatsapp fields').item.json.message }}'
+);
+```
+
+**Output (key fields):**
+
+| Field | Used for |
+|-------|----------|
+| `tenant_id`, `tenant_active` | Active verification |
+| `welcome_brand_name` | Location menu greeting |
+| `needs_location_menu` | Branch — show menu vs continue to AI |
+| `business_menu` | JSON array of locations (index, name, address, …) |
+| `selected_business_id` | Get tenant configuration filter |
+| `summary`, `conversation_id`, `message_count` | AI path (when location already chosen) |
+
+**Behavior:**
+
+- **One business** on the line → auto-selects; no menu.
+- **Multiple businesses** → first message shows brand welcome + numbered list; patient replies `1`, `2`, or a keyword.
+- Choice persists in `messaging_channels.routing_sessions`.
+
+---
+
+### 6. Needs location menu? (IF)
+
+| Condition | `$json.needs_location_menu` equals **true** |
+
+| Branch | Path |
+|--------|------|
+| **TRUE** | Location menu → Send location menu → END (no AI) |
+| **FALSE** | Get tenant configuration → AI flow |
+
+---
+
+### 7. Location menu (Code)
+
+Builds the Spanish welcome message from `welcome_brand_name` and `business_menu`:
+
+```text
+¡Hola! Bienvenido a {brand}. ¿En qué sede desea ser atendido?
+
+1. {location name} — {address}
+2. …
+
+Responda con el número de la sede.
+```
+
+**Send location menu** sends `$json.reply` on WhatsApp.
+
+---
+
+### 8. Get tenant configuration (Postgres)
+
+Loads config for the **selected** business on this WhatsApp line.
+
+```sql
+select *
+from tenant.v_automation_config_all
+where whatsapp_phone_number_id = '{{ $('Whatsapp fields').item.json.phone_number_id }}'
+  and business_id = '{{ $('Process routing').item.json.selected_business_id }}'::uuid
 limit 1;
 ```
 
-**Input:** `phone_number_id` from Whatsapp fields  
 **Output (key fields used downstream):**
 
 | Field | Used for |
 |-------|----------|
-| `tenant_id` | Get Message Summary |
-| `tenant_name` | AI prompt — public business name |
+| `tenant_name` | AI prompt — public business name (location-specific) |
 | `specialty` | AI prompt — subcategory alias |
-| `tenant_active` | Active verification |
 | `service_fee`, `service_currency` | AI prompt — pricing |
 | `address`, `maps_url` | AI prompt — location |
 | `business_metadata.office_hours_start/end` | AI prompt — hours |
 
-See [Supabase.md — v_automation_config](./Supabase.md#view-tenantv_automation_config) for full column list.
+See [Supabase.md — v_automation_config_all](./Supabase.md) for full column list.
 
 ---
 
-### 6. Get Message Summary (Postgres)
-
-Upserts contact + conversation and returns rolling memory + 24h message counter.
-
-```sql
-select
-  contact_id,
-  conversation_id,
-  summary,
-  summary_updated_at,
-  message_count,
-  message_window_started_at
-from messaging_channels.get_conversation_summary(
-  p_tenant_id := '{{ $json.tenant_id }}'::uuid,
-  p_channel := 'whatsapp',
-  p_external_id := '{{ $('Whatsapp fields').item.json.wa_id }}',
-  p_channel_endpoint_id := '{{ $('Whatsapp fields').item.json.phone_number_id }}',
-  p_display_name := '{{ $('Whatsapp fields').item.json.Name }}'
-);
-```
-
-**Input:** `tenant_id` from Get tenant configuration  
-**Side effects in DB:**
-
-- Creates/updates `messaging_channels.contacts`
-- Creates/updates `messaging_channels.conversations`
-- Increments `message_count` (resets after 24h window expires)
-
-**Output used downstream:**
-
-| Field | Used for |
-|-------|----------|
-| `summary` | AI prompt — RESUMEN PREVIO |
-| `conversation_id` | Update Conversation Summary |
-| `message_count` | Active verification (< 30) |
-
----
-
-### 7. Active verification (IF)
+### 9. Active verification (IF)
 
 All three conditions must pass (**AND**):
 
 | # | Condition | Purpose |
 |---|-----------|---------|
-| 1 | `Get tenant configuration.tenant_id` is not empty | Tenant found for this WhatsApp line |
-| 2 | `Get tenant configuration.tenant_active` equals `true` | Account + business + WhatsApp line active |
-| 3 | `$json.message_count` **lt** `30` | 24h rate limit — cost/abuse protection |
+| 1 | `Process routing.tenant_id` is not empty | Tenant found for this WhatsApp line |
+| 2 | `Process routing.tenant_active` equals `true` | Account + business + WhatsApp line active |
+| 3 | `Process routing.message_count` **lt** `30` | 24h rate limit — cost/abuse protection |
 
 | Branch | Path |
 |--------|------|
 | **TRUE** | AI Agent |
 | **FALSE** | To many messages handler |
 
-Rate limit is **per conversation**, rolling **24 hours** — not tied to billing plan.
+Rate limit is **per conversation** (or routing session before a location is chosen), rolling **24 hours**.
 
 ---
 
-### 8. AI Agent
+### 10. AI Agent
 
 | Setting | Value |
 |---------|-------|
@@ -243,7 +273,7 @@ Rate limit is **per conversation**, rolling **24 hours** — not tied to billing
 | Section | Source |
 |---------|--------|
 | Role | `tenant_name`, `specialty` from tenant config |
-| RESUMEN PREVIO | `Get Message Summary.summary` |
+| RESUMEN PREVIO | `Process routing.summary` |
 | MENSAJE ACTUAL | `Whatsapp fields.message` |
 | Doctor data | name, specialty, fee, address, hours, maps from tenant config |
 | Client data | Name, message from Whatsapp fields |
@@ -256,7 +286,7 @@ Rate limit is **per conversation**, rolling **24 hours** — not tied to billing
 
 ---
 
-### 9. Code in JavaScript
+### 11. Code in JavaScript
 
 Parses AI output into structured fields for Send message and Update Conversation Summary.
 
@@ -275,7 +305,7 @@ Parses AI output into structured fields for Send message and Update Conversation
 
 ---
 
-### 10. Send message (WhatsApp)
+### 12. Send message (WhatsApp)
 
 | Field | Expression |
 |-------|------------|
@@ -287,13 +317,13 @@ Sends the AI-generated reply to the patient. **Reply text is not stored in the d
 
 ---
 
-### 11. Update Conversation Summary (Postgres)
+### 13. Update Conversation Summary (Postgres)
 
 Persists the updated rolling summary after a successful AI reply.
 
 ```sql
 select messaging_channels.update_conversation_summary(
-  '{{ $('Get Message Summary').item.json.conversation_id }}'::uuid,
+  '{{ $('Process routing').item.json.conversation_id }}'::uuid,
   '{{ $('Code in JavaScript').item.json.summary }}'
 ) as summary_updated_at;
 ```
@@ -331,7 +361,7 @@ No AI Agent. No Update Conversation Summary. Prevents unnecessary token spend on
 | Step | Schema | Object | Read / Write |
 |------|--------|--------|--------------|
 | Get tenant configuration | `tenant` | `v_automation_config` | Read |
-| Get Message Summary | `messaging_channels` | `get_conversation_summary()` | Write contacts + conversations, Read summary |
+| Process routing | `messaging_channels` | `process_inbound_routing()` | Routing session + contacts/conversations when location chosen |
 | Update Conversation Summary | `messaging_channels` | `update_conversation_summary()` | Write summary |
 
 **Not stored:** inbound message body, outbound reply text, raw webhook payloads.
@@ -355,9 +385,8 @@ Same patient (`wa_id`) talking to the same business line always maps to one `mes
 |------|-------|
 | `whatsapp_phone_number_id` | `1248499035016959` |
 | Business number | `+59176268600` |
-| Public name (`tenant_name`) | `Dr. Luis Felipe Murillo` |
-| Specialty | `neurology` |
-| Default consult fee | 300 BOB |
+| Brand (`welcome_brand_name`) | Dr. Luis Felipe Murillo |
+| Locations | 1 — Papa León XIII (300 BOB, 09:00–12:00) · 2 — Sopocachi (250 BOB, 14:00–20:00) |
 
 ---
 
@@ -387,8 +416,9 @@ Same patient (`wa_id`) talking to the same business line always maps to one `mes
 
 ## Import / activate
 
-1. Import [`flows/IndigoNode_Whatsapp_bot_v1.4.json`](../flows/IndigoNode_Whatsapp_bot_v1.4.json) into n8n
-2. Re-link credentials (WhatsApp OAuth, WhatsApp account, Postgres, OpenAI)
-3. Confirm Postgres credential uses Supabase session pooler
-4. Test with a text message → verify row in `messaging_channels.conversations`
-5. Activate workflow
+1. Import [`flows/IndigoNode_Whatsapp_bot_v1.5.json`](../flows/IndigoNode_Whatsapp_bot_v1.5.json) into n8n
+2. Deactivate v1.4 if still active
+3. Re-link credentials (WhatsApp OAuth, WhatsApp account, Postgres, OpenAI)
+4. Confirm Postgres credential uses Supabase session pooler
+5. Test: send **Hola** → location menu; reply **1** or **2** → AI uses that office's price/hours
+6. Activate workflow

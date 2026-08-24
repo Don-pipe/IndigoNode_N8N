@@ -13,7 +13,7 @@ PostgreSQL database hosted on Supabase for the WhatsApp automation platform. Dat
 | [migration_plan_v2.md](./resources/migration_plan_v2.md) | Step-by-step migration runbook (complete) |
 | [`sql/`](../sql/) | Source of truth for DDL |
 
-**Production workflow:** [`flows/IndigoNode_Whatsapp_bot_v1.4.json`](../flows/IndigoNode_Whatsapp_bot_v1.4.json) · **Flow docs:** [whatsapp_bot.md](./whatsapp_bot.md)
+**Production workflow:** [`flows/IndigoNode_Whatsapp_bot_v1.5.json`](../flows/IndigoNode_Whatsapp_bot_v1.5.json) · **Flow docs:** [whatsapp_bot.md](./whatsapp_bot.md)
 
 ---
 
