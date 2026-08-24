@@ -2,11 +2,24 @@
 
 ## PHASE 0 — PROJECT CONTEXT
 
-**Status:** Read-only reference
-**Company:** IndigoNode — Automation Services
-**Project:** White Node
-**Project Type:** WhatsApp Business automation platform for businesses
-**Initial Target Market:** Doctors / medical practices
+**Status:** Living reference — updated as the platform ships  
+**Last updated:** 2026-08-24  
+**Company:** IndigoNode — Automation Services  
+**Project:** White Node (IndigoNode WhatsApp automation)  
+**Project Type:** WhatsApp Business automation platform for businesses  
+**Initial Target Market:** Doctors / medical practices  
+
+**Canonical docs (repo):**
+
+| Area | Document |
+|------|----------|
+| Database (v2) | [Supabase.md](../Supabase.md) |
+| n8n workflow | [whatsapp_bot.md](../whatsapp_bot.md) |
+| Onboarding Step 1 — Meta | [meta_business_setup.md](../guidance/meta_business_setup.md) |
+| Onboarding Step 2 — WhatsApp trigger | [whatsapp_trigger_config.md](../guidance/whatsapp_trigger_config.md) |
+| Onboarding Step 3 — Postgres | [supabase_postgres_node_config.md](../guidance/supabase_postgres_node_config.md) |
+| DB design rationale | [supabase_db_design.md](./supabase_db_design.md) |
+| v2 migration runbook | [migration_plan_v2.md](./migration_plan_v2.md) |
 
 ---
 
@@ -32,7 +45,7 @@ The doctor should not need to abandon the WhatsApp Business application to benef
 
 # 2. BUSINESS CONTEXT
 
-White Node is currently a product under development.
+White Node is a product in active delivery — **v1 WhatsApp conversation automation is live** for the first production POC (Murillo, 2026-08-24). Broader MVP features (reminders, summaries, coexistence) remain on the roadmap.
 
 **Important business fact:**
 
@@ -367,72 +380,70 @@ One tenant must never be able to access another tenant's data.
 
 # 12. DATABASE ARCHITECTURE
 
-The database will use PostgreSQL.
+**Status (2026-08-24):** v2 schema **live in production Supabase**. Legacy `messaging` schema removed.
 
-The system will use PostgreSQL **schemas to organize domains**, rather than treating every individual data type as a schema.
-
-A schema is a namespace used to logically organize related database objects such as tables, views, functions, and other objects.
-
-Example:
+PostgreSQL uses **schemas to organize domains**. The implemented v2 structure:
 
 ```text
-PostgreSQL Database
+PostgreSQL Database (Supabase)
 │
-├── tenant
+├── tenant                          ← customers, businesses, WhatsApp routing
 │   ├── tenants
-│   ├── users
-│   └── business_profiles
+│   ├── tenant_settings
+│   ├── tenant_businesses
+│   ├── business_pricing
+│   ├── business_knowledge
+│   ├── whatsapp_accounts           ← phone_number_id → business (n8n webhook key)
+│   └── v_automation_config         ← view: tenant + business + pricing + knowledge
 │
-├── messaging
-│   ├── conversations
-│   ├── messages
-│   └── contacts
+├── messaging_channels              ← runtime messaging (WhatsApp today; multi-channel later)
+│   ├── contacts
+│   ├── conversations               ← rolling AI summary + 24h message_count only
+│   ├── get_conversation_summary()
+│   └── update_conversation_summary()
 │
-├── appointments
-│   └── appointments
-│
-├── ai
-│   ├── agents
-│   ├── prompts
-│   └── knowledge
-│
-└── system
-    ├── integrations
-    ├── workflow_logs
-    └── audit_logs
+├── appointments                    ← planned, not in v1
+├── ai                              ← planned, not in v1 (prompt lives in n8n today)
+└── system                          ← planned
 ```
 
-This is a proposed logical structure and should be validated before implementation.
+**Privacy rule (v1):** Store rolling conversation **summaries** and counters — **not** inbound/outbound message bodies or raw webhook payloads.
+
+**n8n access:** Postgres node via Supabase **session pooler** — queries `tenant.*` and `messaging_channels.*` directly. No `public.v_automation_config` proxy.
+
+Source of truth for DDL: [`sql/`](../sql/) (migrations `013`–`018`).
 
 ---
 
 # 13. INITIAL DATABASE DOMAINS
 
-## Tenant
+## Tenant — **implemented (v2)**
 
-Stores information about each White Node customer.
+Stores each White Node customer and their business configuration.
 
-Potential entities:
+Live entities:
 
-* Tenant
-* Business profile
-* Tenant users
-* Business locations
-* Business schedules
+* `tenants` — POC identity (name, title, slug)
+* `tenant_settings` — activation, automation plan
+* `tenant_businesses` — public business name, category, address, metadata (hours, maps)
+* `business_pricing` — service fees (e.g. consulta price in BOB)
+* `business_knowledge` — FAQ / policy blocks for AI (aggregate via view)
+* `whatsapp_accounts` — Meta `phone_number_id` routing to a business
 
 ---
 
-## Messaging
+## Messaging — **implemented as `messaging_channels` (v2)**
 
-Stores communication-related information.
+Channel-agnostic messaging runtime. WhatsApp is the first channel.
 
-Potential entities:
+Live entities:
 
-* Contacts
-* Conversations
-* Messages
-* Message events
-* Message status
+* `contacts` — channel user ID (`wa_id` for WhatsApp)
+* `conversations` — rolling `summary`, `message_count` (24h window), timestamps
+
+**Not stored:** message bodies, chat history, raw webhooks.
+
+Legacy `messaging` schema was dropped after v2 cutover (2026-08-24).
 
 ---
 
@@ -491,9 +502,8 @@ tenant_id
     ├── locations
     ├── contacts
     ├── conversations
-    ├── messages
-    ├── appointments
-    └── AI configuration
+    ├── appointments (future)
+    └── AI configuration (partial — knowledge in DB, prompt in n8n)
 ```
 
 The system should favor explicit tenant relationships instead of relying exclusively on application-level filtering.
@@ -544,32 +554,52 @@ Production credentials and production WhatsApp numbers should not be casually us
 
 # 17. N8N ARCHITECTURE PRINCIPLE
 
-n8n should be treated as the **orchestration layer**, not the database.
+n8n is the **orchestration layer**, not the database.
 
-Example:
+**Production workflow (v1.4):** `IndigoNode_Whatsapp_bot_v1.4_v2` — see [whatsapp_bot.md](../whatsapp_bot.md).
+
+Implemented flow:
 
 ```text
-WhatsApp Event
+WhatsApp Trigger (Meta webhook)
       │
       ▼
-    n8n
+Whatsapp fields          ← normalize phone_number_id, wa_id, message, type
       │
-      ├── Identify Tenant
+      ▼
+Messages Type (IF)       ← text vs image
       │
-      ├── Identify Contact
+      ├─ image  → fixed reply (no AI)
       │
-      ├── Store Message
-      │
-      ├── Retrieve Business Context
-      │
-      ├── Determine Automation
-      │
-      ├── Call AI
-      │
-      └── Send Response
+      └─ text
+            │
+            ▼
+      Get tenant configuration     ← tenant.v_automation_config
+            │
+            ▼
+      Get Message Summary          ← messaging_channels.get_conversation_summary
+            │
+            ▼
+      Active verification          ← tenant active + message_count < 30
+            │
+            ├─ over limit → fixed handoff message
+            │
+            └─ OK
+                  │
+                  ▼
+              AI Agent (OpenAI)      ← no LangChain Simple Memory
+                  │
+                  ▼
+              Code in JavaScript     ← parse { reply, summary }
+                  │
+                  ▼
+              Send message (WhatsApp)
+                  │
+                  ▼
+              Update Conversation Summary  ← messaging_channels.update_conversation_summary
 ```
 
-Business data should persist in PostgreSQL rather than only inside n8n workflow state.
+Business data persists in PostgreSQL. n8n holds credentials (WhatsApp OAuth, WhatsApp API token, Postgres pooler, OpenAI) — never commit tokens to git.
 
 ---
 
@@ -640,39 +670,77 @@ Each doctor should eventually have a configurable profile containing:
 
 # 20. CURRENT PROJECT STATUS
 
-Current status:
+**Last updated:** 2026-08-24
 
-* White Node concept defined.
-* Initial target market identified: doctors.
-* Three units have already been sold.
-* WhatsApp Business Coexistence is a critical dependency.
-* Meta Developer / Meta Business configuration is required.
-* n8n automation architecture has been selected.
-* Supabase/PostgreSQL has been selected as the backend.
-* MVP functionality has been defined at a high level.
-* Database architecture still needs to be designed.
-* Production architecture still needs to be validated.
+## v1 WhatsApp bot — **live (POC)**
+
+End-to-end WhatsApp automation is **working in production** for the first tenant:
+
+| Item | Status |
+|------|--------|
+| Database v2 (`tenant` + `messaging_channels`) | **Complete** — SQL `014`–`018` applied |
+| n8n workflow cutover | **Complete** — v1.4 on v2 functions/view |
+| Meta + n8n onboarding runbooks | **Documented** in `docs/guidance/` |
+| Production POC tenant | **Dr. Luis Felipe Murillo** |
+
+**Production POC values (Murillo):**
+
+| Field | Value |
+|-------|-------|
+| Public name | Dr. Luis Felipe Murillo |
+| WhatsApp business number | `+59176268600` |
+| Meta `phone_number_id` | `1248499035016959` |
+| Default consult price | 300 BOB |
+
+## What v1 delivers today
+
+* Inbound WhatsApp text → AI reply in Spanish (professional, no medical advice)
+* Tenant lookup by Meta `phone_number_id`
+* Postgres rolling conversation summary (replaces LangChain memory)
+* 30 messages / 24h per conversation rate limit
+* Image messages → fixed “describe the content” reply (no AI)
+* Business config from DB: name, specialty, fee, address, hours, maps URL
+
+## v1 known limitations
+
+* **One WhatsApp line → one active business** — `whatsapp_phone_number_id` maps to a single `business_id` via `whatsapp_accounts`. Two offices on the same number with different prices requires a product decision (not supported in v1).
+* **`knowledge_text`** exists in the view but is not yet wired into the AI prompt.
+* **Stickers** follow the text path (only images are branched).
+* **WhatsApp Business Coexistence** (doctor keeps using the mobile app on the same number) remains a **future** goal — current onboarding uses Meta Business Suite + Cloud API (do **not** register the number in the standalone WhatsApp Business app during setup).
+* **Appointments, reminders, daily summaries** — out of scope for v1 (see §7).
+
+## v1.1 polish backlog (optional)
+
+* Wire `knowledge_text` into AI Agent prompt
+* Sticker branch on Messages Type
+* Parameterize summary SQL expressions
+* Move Active verification before Get Message Summary (ordering cleanup)
+
+## Still planned (post-v1)
+
+* Multi-tenant self-service onboarding
+* Admin UI / tenant management
+* Appointments module
+* Permanent System User token (replace short-lived dev tokens)
+* Client-owned vs IndigoNode-owned Meta Business Portfolio playbook
 
 ---
 
 # 21. CURRENT BLOCKERS
 
-The project currently depends on the Meta ecosystem for WhatsApp Business Coexistence and related capabilities.
+## Resolved (2026-08-24)
 
-Any Meta verification, app configuration, permissions, or provider requirements should be treated as **external project dependencies**.
+* Database schema design → **v2 implemented and migrated**
+* n8n ↔ Supabase integration → **Postgres node + v2 functions working**
+* Meta onboarding procedure → **documented** ([Step 1](../guidance/meta_business_setup.md) → [Step 2](../guidance/whatsapp_trigger_config.md) → [Step 3](../guidance/supabase_postgres_node_config.md))
 
-When a Meta dependency blocks implementation, development should continue on components that can be built independently, such as:
+## Active / external dependencies
 
-* Database architecture
-* Tenant model
-* n8n workflows
-* AI agent logic
-* Business configuration
-* Mock webhook payloads
-* Testing infrastructure
-* Logging
-* Error handling
-* Admin functionality
+* **Meta ecosystem** — app review, billing, token lifetime (System User permanent token for production)
+* **WhatsApp Business Coexistence** — still a strategic dependency for the full product vision; not required for current Cloud API POC
+* **Sold units (3)** — onboarding playbooks and multi-tenant ops still manual
+
+When Meta blocks progress, continue on: tenant data model, prompt quality, admin tooling, appointments design, and test infrastructure.
 
 ---
 
@@ -697,20 +765,29 @@ The project should follow these principles:
 
 # 23. DEFINITION OF MVP SUCCESS
 
-The MVP can be considered successful when a real doctor can:
+### v1 achieved (2026-08-24)
 
-1. Connect their supported WhatsApp Business setup.
-2. Continue using WhatsApp Business normally.
-3. Receive patient messages.
-4. Have White Node process those messages.
-5. Automatically greet patients.
-6. Automatically answer configured FAQs.
-7. Provide configured locations and schedules.
-8. Send configured reminders.
-9. Receive a daily appointment summary.
-10. Receive a daily summary of patient questions.
-11. Escalate conversations that require human intervention.
-12. Have all data securely isolated from other White Node customers.
+The following are **proven** with the Murillo POC:
+
+1. Connect a business WhatsApp line via Meta Cloud API + n8n webhooks.
+2. Receive patient messages and process them through n8n.
+3. AI agent answers common questions using configured business data (name, specialty, fee, address, hours).
+4. Conversation memory via Postgres summary (no raw message storage).
+5. Rate limiting and inactive-tenant guards.
+6. Tenant data isolated by schema + RLS (n8n uses service-role pooler).
+
+### Full MVP (still outstanding)
+
+The broader MVP definition from §5–§6 still includes items **not yet built**:
+
+* Continue using WhatsApp Business app on the same number (coexistence)
+* Automated greeting flows (beyond implicit AI behavior)
+* Scheduled appointment reminders
+* Daily appointment + patient-question summaries
+* Structured human-handoff UI
+* Appointment create/cancel/reschedule
+
+Treat v1 as the **conversation automation foundation**; schedule/reminder/summary features remain on the roadmap (§24).
 
 ---
 
@@ -757,13 +834,21 @@ A PostgreSQL namespace used to organize related database objects.
 Example:
 
 ```text
-messaging.messages
+messaging_channels.conversations
 ```
 
 Here:
 
-* `messaging` = schema
-* `messages` = table
+* `messaging_channels` = schema
+* `conversations` = table
+
+### Phone number ID
+
+Meta's identifier for the **business WhatsApp line** (webhook `metadata.phone_number_id`). Used by n8n to look up the tenant — not the patient's number.
+
+### WA ID
+
+The patient's WhatsApp user ID (webhook `contacts[].wa_id`). Stored as `messaging_channels.contacts.external_id`.
 
 ### Workflow
 
@@ -794,3 +879,26 @@ The initial implementation is intentionally narrow:
 > **Automate WhatsApp communication for doctors without forcing them to abandon the WhatsApp Business experience they already use.**
 
 The architecture should be simple enough to ship quickly, but structured enough that the same platform can later support other businesses without rebuilding the entire system.
+
+---
+
+# 27. REPOSITORY LAYOUT (DOCS)
+
+```text
+docs/
+├── Supabase.md              ← v2 schema reference (canonical DB doc)
+├── whatsapp_bot.md          ← n8n workflow node-by-node reference
+├── guidance/                ← step-by-step onboarding runbooks
+│   ├── meta_business_setup.md           Step 1 — Meta suite
+│   ├── whatsapp_trigger_config.md       Step 2 — OAuth + webhook + send
+│   └── supabase_postgres_node_config.md Step 3 — Postgres credential + nodes
+└── resources/
+    ├── project_context_white_node.md    ← this file
+    ├── supabase_db_design.md            ← design rationale + Phase 4 checklist
+    └── migration_plan_v2.md             ← v2 migration runbook (complete)
+
+flows/                       ← n8n JSON exports
+sql/                         ← DDL source of truth (014–018 = v2)
+```
+
+**Onboarding order for a new tenant:** Step 1 → Step 2 → Step 3 → import workflow → verify Supabase row → activate.
