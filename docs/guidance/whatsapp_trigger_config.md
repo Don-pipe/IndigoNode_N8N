@@ -3,7 +3,7 @@
 **Purpose:** Connect n8n to Meta WhatsApp Cloud API (OAuth, webhook, send credentials).  
 **Audience:** IndigoNode ops / onboarding.  
 **Prerequisite:** Complete [meta_business_setup.md](./meta_business_setup.md) **Step 1** first.  
-**Next:** Import and configure the full bot workflow — see [whatsapp_bot.md](../whatsapp_bot.md)  
+**Next:** Import and configure the full bot workflow — see [supabase_postgres_node_config.md](./supabase_postgres_node_config.md) (Step 3) · [whatsapp_bot.md](../whatsapp_bot.md)  
 **Related:** [Supabase.md](../Supabase.md) · [supabase_db_design.md](../resources/supabase_db_design.md)
 
 ---
@@ -98,4 +98,4 @@
 
 - [ ] Supabase `whatsapp_accounts` insert after trigger is live
 - [ ] System User + permanent token for production (replace short-lived dev token)
-- [ ] Full workflow import checklist in [whatsapp_bot.md](../whatsapp_bot.md)
+- [ ] Full workflow import checklist in [whatsapp_bot.md](../whatsapp_bot.md) — continue with [supabase_postgres_node_config.md](./supabase_postgres_node_config.md)

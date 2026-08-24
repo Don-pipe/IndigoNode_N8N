@@ -1,7 +1,7 @@
 # IndigoNode Database Design
 
 **Canonical reference:** [Supabase.md](../Supabase.md) — production schema field reference  
-**Companion:** [migration_plan_v2.md](./migration_plan_v2.md) · [meta_business_setup.md](../guidance/meta_business_setup.md) · [whatsapp_trigger_config.md](../guidance/whatsapp_trigger_config.md)
+**Companion:** [migration_plan_v2.md](./migration_plan_v2.md) · [meta_business_setup.md](../guidance/meta_business_setup.md) · [whatsapp_trigger_config.md](../guidance/whatsapp_trigger_config.md) · [supabase_postgres_node_config.md](../guidance/supabase_postgres_node_config.md)
 
 Date: 24/08/2026
 

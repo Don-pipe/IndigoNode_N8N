@@ -9,6 +9,7 @@ PostgreSQL database hosted on Supabase for the WhatsApp automation platform. Dat
 | [supabase_db_design.md](./resources/supabase_db_design.md) | Full design rationale, field decisions, n8n rollout checklist |
 | [meta_business_setup.md](./guidance/meta_business_setup.md) | Meta / WhatsApp Business onboarding |
 | [whatsapp_trigger_config.md](./guidance/whatsapp_trigger_config.md) | n8n WhatsApp trigger, webhook, send credentials |
+| [supabase_postgres_node_config.md](./guidance/supabase_postgres_node_config.md) | n8n Postgres credential and database nodes |
 | [migration_plan_v2.md](./resources/migration_plan_v2.md) | Step-by-step migration runbook (complete) |
 | [`sql/`](../sql/) | Source of truth for DDL |
 
@@ -713,6 +714,7 @@ These are **not** in current migrations. See [supabase_db_design.md](./resources
 - [whatsapp_bot.md](./whatsapp_bot.md) — n8n workflow node reference
 - [meta_business_setup.md](./guidance/meta_business_setup.md) — Meta / WhatsApp Business onboarding
 - [whatsapp_trigger_config.md](./guidance/whatsapp_trigger_config.md) — n8n trigger and webhook setup
+- [supabase_postgres_node_config.md](./guidance/supabase_postgres_node_config.md) — n8n Postgres credential and nodes
 - [supabase_db_design.md](./resources/supabase_db_design.md) — design decisions, Phase 4 n8n checklist, backlog
 - [migration_plan_v2.md](./resources/migration_plan_v2.md) — migration runbook (complete 2026-08-24)
 - [`sql/006_n8n_queries.sql`](../sql/006_n8n_queries.sql) — query reference (do not run in Supabase)
