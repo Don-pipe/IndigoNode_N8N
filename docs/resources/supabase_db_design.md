@@ -1,7 +1,7 @@
 # IndigoNode Database Design
 
 **Canonical reference:** [Supabase.md](../Supabase.md) — production schema field reference  
-**Companion:** [migration_plan_v2.md](./migration_plan_v2.md) — migration runbook (complete)
+**Companion:** [migration_plan_v2.md](./migration_plan_v2.md) · [meta_business_setup.md](./meta_business_setup.md)
 
 Date: 24/08/2026
 
