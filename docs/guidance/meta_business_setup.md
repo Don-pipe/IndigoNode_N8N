@@ -2,8 +2,8 @@
 
 **Purpose:** Official IndigoNode procedure to set up Meta **before** the WhatsApp bot can go live.  
 **Audience:** IndigoNode ops / onboarding.  
-**Next step after 1.7:** n8n setup (Step 2) — see [whatsapp_bot.md](../whatsapp_bot.md)  
-**Related:** [Supabase.md](../Supabase.md) · [supabase_db_design.md](./supabase_db_design.md)
+**Next step after 1.7:** [whatsapp_trigger_config.md](./whatsapp_trigger_config.md) (Step 2)  
+**Related:** [Supabase.md](../Supabase.md) · [supabase_db_design.md](../resources/supabase_db_design.md) · [whatsapp_bot.md](../whatsapp_bot.md)
 
 ---
 
@@ -95,7 +95,8 @@
 
 - [ ] Go to **n8n setup → Step 2**
 
-See [whatsapp_bot.md](../whatsapp_bot.md) for workflow credentials, webhook URL, and Postgres connection.
+See [whatsapp_trigger_config.md](./whatsapp_trigger_config.md) for OAuth, webhook, and Send Message credentials.  
+Full workflow reference: [whatsapp_bot.md](../whatsapp_bot.md).
 
 ---
 
@@ -109,7 +110,7 @@ See [whatsapp_bot.md](../whatsapp_bot.md) for workflow credentials, webhook URL,
 | **1.4** | Meta Business → WhatsApp Accounts | Add + verify phone (SMS) |
 | **1.5** | Meta Business → Billing | Add payment method |
 | **1.6** | Meta Developer → WhatsApp | Test number + token, then production setup |
-| **1.7** | n8n | Webhooks + workflow (**Step 2**) |
+| **1.7** | n8n | [whatsapp_trigger_config.md](./whatsapp_trigger_config.md) (**Step 2**) |
 
 ---
 
@@ -184,6 +185,7 @@ Must return one row with `tenant_active = true`. Full schema: [Supabase.md](../S
 
 ## Bibliography
 
+- [Cómo obtener el Token Permanente de WhatsApp para n8n (Guía Definitiva)](https://www.youtube.com/watch?v=aerQRoAJkWg)
 - [How to Configure WhatsApp API Manually Step-By-Step — Manual Meta WhatsApp API Setup For Business](https://www.youtube.com/watch?v=-E8GlZ5C3Lc)
 - [Meta Business Suite](https://business.facebook.com)
 - [Meta for Developers](https://developers.facebook.com)
@@ -195,6 +197,5 @@ Must return one row with `tenant_active = true`. Full schema: [Supabase.md](../S
 
 ## Backlog
 
-- [ ] n8n Step 2 as dedicated doc section (webhook URL, OAuth, Supabase insert)
 - [ ] System User + permanent token for production
 - [ ] Client-owned vs IndigoNode-owned Business Portfolio playbook

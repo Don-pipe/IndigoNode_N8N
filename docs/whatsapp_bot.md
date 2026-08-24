@@ -3,6 +3,7 @@
 **Workflow file:** [`flows/IndigoNode_Whatsapp_bot_v1.4.json`](../flows/IndigoNode_Whatsapp_bot_v1.4.json)  
 **Also exported as:** [`flows/IndigoNode_Whatsapp_bot_v1.4_v2.json`](../flows/IndigoNode_Whatsapp_bot_v1.4_v2.json) (same content)  
 **Internal n8n name:** `IndigoNode_Whatsapp_bot_v1.4_v2`  
+**Prerequisite:** [whatsapp_trigger_config.md](./guidance/whatsapp_trigger_config.md) — OAuth, webhook, Send Message credentials  
 **Database:** Supabase Postgres — see [Supabase.md](./Supabase.md)  
 **Timezone:** `America/La_Paz`
 
