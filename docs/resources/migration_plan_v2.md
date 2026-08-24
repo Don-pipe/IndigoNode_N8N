@@ -1,9 +1,9 @@
 # Migration Plan — Database v2 (tenant + messaging_channels)
 
-**Project:** IndigoNode WhatsApp Agent  
-**Date:** 2026-08-24  
-**Design reference:** [task_1.md](./task_1.md)  
-**Production workflow:** `flows/IndigoNode_Whatsapp_bot_v1.4_v2.json` (post-migration)
+**Canonical reference:** [Supabase.md](../Supabase.md)  
+**Design reference:** [supabase_db_design.md](./supabase_db_design.md)  
+**Project:** IndigoNode WhatsApp Agent · **Date:** 2026-08-24  
+**Production workflow:** [`flows/IndigoNode_Whatsapp_bot_v1.4_v2.json`](../../flows/IndigoNode_Whatsapp_bot_v1.4_v2.json) (post-migration)
 
 ---
 
@@ -47,9 +47,9 @@
 
 1. Restructure **`tenant`** schema (POC fields, businesses, pricing, settings).
 2. Replace **`messaging`** with **`messaging_channels`** (multi-channel ready, summary-only memory).
-3. Replace **`tenant.v_automation_config`** with v2 view ([`sql/013`](../sql/013_prepared_v_automation_config_v2.sql)).
+3. Replace **`tenant.v_automation_config`** with v2 view ([`sql/013`](../../sql/013_prepared_v_automation_config_v2.sql)).
 4. **Reset** test conversations (1 contact / 1 conversation — OK to discard).
-5. Update **n8n** Postgres queries and AI prompt (Phase 4 in task_1.md).
+5. Update **n8n** Postgres queries and AI prompt (Phase 4 in supabase_db_design.md).
 
 ---
 
@@ -87,7 +87,7 @@
 
 ## Phase 1 — Before SQL (manual)
 
-- [x] Confirm baseline in repo: [`flows/IndigoNode_Whatsapp_bot_v1.4.json`](../flows/IndigoNode_Whatsapp_bot_v1.4.json)
+- [x] Confirm baseline in repo: [`flows/IndigoNode_Whatsapp_bot_v1.4.json`](../../flows/IndigoNode_Whatsapp_bot_v1.4.json)
 - [x] **Deactivate** workflow in n8n (`active: false` — already off in v1.4 export)
 - [ ] Export / duplicate live workflow in n8n (backup) — confirm if done
 - [ ] Optional: Supabase point-in-time backup / snapshot
@@ -100,14 +100,14 @@ Run **one file at a time** in Supabase SQL Editor. Confirm success before the ne
 
 | Step | File | Status | What it does |
 |------|------|--------|----------------|
-| 1 | [`sql/014_tenant_v2_migration.sql`](../sql/014_tenant_v2_migration.sql) | **Done** | New tenant tables, POC columns, migrate `business_profiles`, link `whatsapp_accounts.business_id` |
-| 2 | [`sql/015_messaging_channels_schema.sql`](../sql/015_messaging_channels_schema.sql) | **Done** | Create `messaging_channels` schema — verify: contacts 0, conversations 0 |
-| 3 | [`sql/016_messaging_channels_functions.sql`](../sql/016_messaging_channels_functions.sql) | **Done** | `get_conversation_summary` (24h window) + `update_conversation_summary` |
-| 4 | [`sql/013_prepared_v_automation_config_v2.sql`](../sql/013_prepared_v_automation_config_v2.sql) | **Done** | `tenant.v_automation_config` v2 view (no public proxy) |
-| 5 | [`sql/017_grants_rls_v2.sql`](../sql/017_grants_rls_v2.sql) | **Done** | Grants + RLS for new tables, view, and functions |
-| 6 | [`sql/018_cleanup_legacy.sql`](../sql/018_cleanup_legacy.sql) | **Done** | Drop `messaging` schema, `business_profiles`, legacy `tenants` columns |
+| 1 | [`sql/014_tenant_v2_migration.sql`](../../sql/014_tenant_v2_migration.sql) | **Done** | New tenant tables, POC columns, migrate `business_profiles`, link `whatsapp_accounts.business_id` |
+| 2 | [`sql/015_messaging_channels_schema.sql`](../../sql/015_messaging_channels_schema.sql) | **Done** | Create `messaging_channels` schema — verify: contacts 0, conversations 0 |
+| 3 | [`sql/016_messaging_channels_functions.sql`](../../sql/016_messaging_channels_functions.sql) | **Done** | `get_conversation_summary` (24h window) + `update_conversation_summary` |
+| 4 | [`sql/013_prepared_v_automation_config_v2.sql`](../../sql/013_prepared_v_automation_config_v2.sql) | **Done** | `tenant.v_automation_config` v2 view (no public proxy) |
+| 5 | [`sql/017_grants_rls_v2.sql`](../../sql/017_grants_rls_v2.sql) | **Done** | Grants + RLS for new tables, view, and functions |
+| 6 | [`sql/018_cleanup_legacy.sql`](../../sql/018_cleanup_legacy.sql) | **Done** | Drop `messaging` schema, `business_profiles`, legacy `tenants` columns |
 
-**Do not run:** [`sql/006_n8n_queries.sql`](../sql/006_n8n_queries.sql) (reference only).
+**Do not run:** [`sql/006_n8n_queries.sql`](../../sql/006_n8n_queries.sql) (reference only).
 
 **Murillo data** is migrated automatically in step 1 — no manual seed inserts needed.
 
@@ -373,7 +373,7 @@ There is no automatic down-migration script — take a backup before step 1.
 ## After go-live
 
 - [x] Export workflow as `flows/IndigoNode_Whatsapp_bot_v1.4_v2.json`
-- [ ] Update [Supabase.md](./Supabase.md) to v2 design
+- [x] Update [Supabase.md](../Supabase.md) to v2 design
 - [ ] Commit SQL + docs to git
 - [ ] Add `business_knowledge` rows when content is ready
 
@@ -381,4 +381,4 @@ There is no automatic down-migration script — take a backup before step 1.
 
 ## Detailed n8n reference
 
-Extended checklist with prompt notes: [task_1.md Phase 4](./task_1.md#phase-4--manual-rollout-checklist-your-hands-on-steps)
+Extended checklist with prompt notes: [supabase_db_design.md Phase 4](./supabase_db_design.md#phase-4--manual-rollout-checklist-your-hands-on-steps)

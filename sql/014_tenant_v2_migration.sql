@@ -8,7 +8,7 @@
 -- Note: step 8 first attempt failed (PL/pgSQL phone/name); fixed with table alias ten.*
 --       014b not needed if step 8 completed successfully from this file.
 --
--- BEFORE RUNNING: deactivate n8n workflow (see docs/migration_plan_v2.md)
+-- BEFORE RUNNING: deactivate n8n workflow (see docs/resources/migration_plan_v2.md)
 
 -- ---------------------------------------------------------------------------
 -- 0) Drop old automation view (depends on business_profiles) | Complete no errors

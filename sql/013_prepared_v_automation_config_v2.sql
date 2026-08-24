@@ -1,6 +1,6 @@
 -- White Node / IndigoNode
 -- Run order: 13 (after 014–016)
--- Purpose: Replace tenant.v_automation_config for the new schema (see docs/task_1.md)
+-- Purpose: Replace tenant.v_automation_config for the new schema (see docs/resources/supabase_db_design.md)
 --
 -- STATUS: APPLIED in production — 2026-08-24 (section 1 only, no errors)
 -- Skipped: public.v_automation_config proxy (n8n uses Postgres node)
@@ -135,7 +135,7 @@ where wa.is_active = true
   and tb.is_active = true;
 
 comment on view tenant.v_automation_config is
-  'n8n webhook lookup: whatsapp_phone_number_id → tenant + business + default price + knowledge/pricing aggregates (task_1 v2 design).';
+  'n8n webhook lookup: whatsapp_phone_number_id → tenant + business + default price + knowledge/pricing aggregates (supabase_db_design v2).';
 
 -- ---------------------------------------------------------------------------
 -- 2) public proxy — SKIPPED (IndigoNode uses n8n Postgres node, not REST)

@@ -4,7 +4,7 @@
 -- WARNING: irreversible. Take a Supabase backup before running.
 --
 -- STATUS: APPLIED in production — 2026-08-24 (all sections, no errors)
--- Phase 2 SQL migration complete → proceed to Phase 4 n8n (migration_plan_v2.md)
+-- Phase 2 SQL migration complete → proceed to Phase 4 n8n (docs/resources/migration_plan_v2.md)
 
 -- ---------------------------------------------------------------------------
 -- 1) Drop legacy messaging schema (contacts, conversations, messages, functions)

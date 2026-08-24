@@ -1,4 +1,7 @@
-# IndigoNode Database Desing
+# IndigoNode Database Design
+
+**Canonical reference:** [Supabase.md](../Supabase.md) — production schema field reference  
+**Companion:** [migration_plan_v2.md](./migration_plan_v2.md) — migration runbook (complete)
 
 Date: 24/08/2026
 
@@ -755,7 +758,7 @@ order by last_message_at desc nulls last;
 
 > **Do not start this section until Phase 3 in [migration_plan_v2.md](./migration_plan_v2.md) passes.**
 
-Open **`IndigoNode_Whatsapp_bot_v1.4`**. Baseline export: [`flows/IndigoNode_Whatsapp_bot_v1.4.json`](../flows/IndigoNode_Whatsapp_bot_v1.4.json).
+Open **`IndigoNode_Whatsapp_bot_v1.4`**. Baseline export: [`flows/IndigoNode_Whatsapp_bot_v1.4.json`](../../flows/IndigoNode_Whatsapp_bot_v1.4.json).
 
 ### 4.1 Whatsapp fields (Set node)
 
