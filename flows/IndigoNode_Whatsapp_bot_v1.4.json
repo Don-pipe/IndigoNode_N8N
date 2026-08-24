@@ -1,0 +1,601 @@
+{
+  "name": "IndigoNode_Whatsapp_bot_v1.4_v2",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1472,
+        -64
+      ],
+      "id": "fcecfa63-0679-47da-aefb-556ef292517f",
+      "name": "WhatsApp Trigger",
+      "webhookId": "46801fe1-9e41-4409-b864-1a058d8f3c10",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "nuAba6Il8TWZtN5A",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7b11c2f4-8e43-4732-81a3-d5c1578a512a",
+              "leftValue": "={{ $json.messages && $json.messages.length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1136,
+        -64
+      ],
+      "id": "0a63ff6f-b4d9-4403-8f31-dc6d88c9e4f7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Whatsapp fields').item.json.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('Whatsapp fields').item.json.wa_id }}",
+        "textBody": "={{ $json.reply }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1232,
+        -944
+      ],
+      "id": "af43a044-2478-47fc-9b4e-d280d303ba41",
+      "name": "Send message",
+      "webhookId": "fd017b13-0e51-4025-8030-d4289a8a019a",
+      "executeOnce": false,
+      "credentials": {
+        "whatsAppApi": {
+          "id": "MKK8kfFDJVZVP9b4",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "=define",
+        "text": "=Eres el asistente de WhatsApp de {{ $('Get tenant configuration').item.json.tenant_name }}, {{ $('Get tenant configuration').item.json.specialty }}. Responde de forma amable, profesional, breve y natural.\n\nRESUMEN PREVIO: {{ $('Get Message Summary').item.json.summary }}\n\nMENSAJE ACTUAL: {{ $('Whatsapp fields').item.json.message }}\n\nDATOS DEL DOCTOR Nombre: {{ $('Get tenant configuration').item.json.tenant_name }} Especialidad: {{ $('Get tenant configuration').item.json.specialty }} Consulta: {{ $('Get tenant configuration').item.json.service_fee }} {{ $('Get tenant configuration').item.json.service_currency }} Dirección: {{ $('Get tenant configuration').item.json.address }} Horario: {{ $('Get tenant configuration').item.json.business_metadata.office_hours_start || '09:00' }}–{{ $('Get tenant configuration').item.json.business_metadata.office_hours_end || '12:00' }} Maps: {{ $('Get tenant configuration').item.json.maps_url }}\n\nDATOS DEL CLIENTE Nombre: {{ $('Whatsapp fields').item.json.Name }} Mensaje: {{ $('Whatsapp fields').item.json.message }}\n\nREGLAS\n\nUsa el nombre del cliente cuando esté disponible.\nUsa el resumen previo para continuidad entre conversaciones.\nResponde solo con información proporcionada en este contexto. No inventes datos.\nNo des diagnósticos, tratamientos ni recomendaciones médicas.\nNo menciones información técnica, IDs, n8n, Supabase, APIs ni herramientas.\nMantén las respuestas cortas y apropiadas para WhatsApp.\nSi el cliente solo solicita información, responde normalmente.\nSi quiere agendar, solicita los datos que falten: nombre, fecha y hora.\nNo confirmes una cita hasta tener esos tres datos.\nVerifica que la fecha y hora estén dentro del horario del consultorio.\nSi el horario no está disponible, ofrece solicitar otro horario.\nNo crees citas si el cliente no ha solicitado agendar.\nActualiza el summary con intención del cliente, datos importantes y pendientes. No guardes saludos triviales.\nFORMATO DE RESPUESTA (OBLIGATORIO) Responde ÚNICAMENTE con JSON válido, sin markdown ni texto extra: {\"reply\":\"mensaje corto para WhatsApp\",\"summary\":\"resumen actualizado en 2-4 oraciones\"}\n\nreply = lo que el cliente verá en WhatsApp.\nsummary = memoria para futuras conversaciones con este cliente.\nNota: usa el año actual según {{ $('Whatsapp fields').item.json.date }}.",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        544,
+        -944
+      ],
+      "id": "e94ae7bd-a2e7-43f1-af3c-d7c569a7b4c3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.6-luna",
+          "mode": "list",
+          "cachedResultName": "gpt-5.6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        -704
+      ],
+      "id": "20f1be1c-3c2a-4593-acf2-6305b55861f1",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "tQz45TsOiTErxDLb",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select *\nfrom tenant.v_automation_config\nwhere whatsapp_phone_number_id = '{{ $json.phone_number_id }}'\nlimit 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        -288,
+        -560
+      ],
+      "id": "69f06f24-6007-43aa-a519-dae7e3677256",
+      "name": "Get tenant configuration",
+      "credentials": {
+        "postgres": {
+          "id": "3qTU0DmGmB7nGAAC",
+          "name": "Postgres account whatsapp bot project"
+        }
+      },
+      "notes": "Looks for the tenant information"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "tenant-found-check",
+              "leftValue": "={{ $('Get tenant configuration').item.json.tenant_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "47d725c5-e29a-4eb9-b99c-eacf097fdc52",
+              "leftValue": "={{ $('Get tenant configuration').item.json.tenant_active }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "772a758e-4520-4790-9c5b-29c2307a3d9d",
+              "leftValue": "={{ $json.message_count }}",
+              "rightValue": 30,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        -560
+      ],
+      "id": "f6166672-375b-434d-bb6f-36bf285e4df5",
+      "name": "Active verification"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select messaging_channels.update_conversation_summary(\n  '{{ $('Get Message Summary').item.json.conversation_id }}'::uuid,\n  '{{ $('Code in JavaScript').item.json.summary }}'\n) as summary_updated_at;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1472,
+        -944
+      ],
+      "id": "42bd5ecd-5216-43f1-8ee5-3e9afd22ad7a",
+      "name": "Update Conversation Summary",
+      "credentials": {
+        "postgres": {
+          "id": "3qTU0DmGmB7nGAAC",
+          "name": "Postgres account whatsapp bot project"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select\n  contact_id,\n  conversation_id,\n  summary,\n  summary_updated_at,\n  message_count,\n  message_window_started_at\nfrom messaging_channels.get_conversation_summary(\n  p_tenant_id := '{{ $json.tenant_id }}'::uuid,\n  p_channel := 'whatsapp',\n  p_external_id := '{{ $('Whatsapp fields').item.json.wa_id }}',\n  p_channel_endpoint_id := '{{ $('Whatsapp fields').item.json.phone_number_id }}',\n  p_display_name := '{{ $('Whatsapp fields').item.json.Name }}'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        -16,
+        -560
+      ],
+      "id": "797d5fd5-2b07-410c-ab65-add8f3b9667f",
+      "name": "Get Message Summary",
+      "credentials": {
+        "postgres": {
+          "id": "3qTU0DmGmB7nGAAC",
+          "name": "Postgres account whatsapp bot project"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output ?? '';\nconst previousSummary = $('Get Message Summary').first().json.summary ?? '';\n\nlet reply = raw;\nlet summary = previousSummary;\n\ntry {\n  const cleaned = raw.replace(/```json\\n?|```/g, '').trim();\n  const parsed = JSON.parse(cleaned);\n  reply = parsed.reply ?? raw;\n  summary = parsed.summary ?? previousSummary;\n} catch (error) {\n  reply = raw;\n  summary = previousSummary;\n}\n\nreturn [{ json: { reply, summary } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        -944
+      ],
+      "id": "02031610-4164-43ea-a73c-9ea82b5e56b8",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Whatsapp fields').item.json.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('Whatsapp fields').item.json.wa_id }}",
+        "textBody": "=Muchas Gracias por comunicarse con nosotros en seguida atenderemos su solicitud",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        -160
+      ],
+      "id": "a73c9129-1a73-4e50-9c1d-5e0ee2b09090",
+      "name": "To many messages handler",
+      "webhookId": "fd017b13-0e51-4025-8030-d4289a8a019a",
+      "executeOnce": false,
+      "credentials": {
+        "whatsAppApi": {
+          "id": "MKK8kfFDJVZVP9b4",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Many Messages Handler\nIn case the client is has sent over 30 messages we will trigger this node the idea behind it is to not allow the user to spend tokens innecesarily",
+        "height": 368,
+        "width": 336
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        -352
+      ],
+      "typeVersion": 1,
+      "id": "dfddfbe0-1408-423f-84b9-ac07b73981d0",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Whatsapp fields').item.json.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('Whatsapp fields').item.json.wa_id }}",
+        "textBody": "=Ahora no podemos ver la imagen, por favor podria describir que es lo que contiene para que pueda ayudarlo",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -256,
+        -128
+      ],
+      "id": "1ebb5b5e-6559-4cbc-9cbc-d30828772b24",
+      "name": "Image Message Handler",
+      "webhookId": "fd017b13-0e51-4025-8030-d4289a8a019a",
+      "executeOnce": false,
+      "credentials": {
+        "whatsAppApi": {
+          "id": "MKK8kfFDJVZVP9b4",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Image Handler\nIn case the user get an image we will trigger this node requesting them to describe what is in the image.",
+        "height": 336,
+        "width": 304
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -352,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "f282fca7-89cd-4e07-a650-ed9bb227baa2",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3dd54e81-1fbd-4699-b2ed-8bd3842f7a67",
+              "name": "phone_number_id",
+              "value": "={{ $('WhatsApp Trigger').item.json.metadata.phone_number_id }}",
+              "type": "string"
+            },
+            {
+              "id": "06230dfd-dc56-41b2-b9e8-017f59d0db5f",
+              "name": "wa_id",
+              "value": "={{ $('WhatsApp Trigger').item.json.contacts[0].wa_id }}",
+              "type": "string"
+            },
+            {
+              "id": "5100917b-5115-4c88-a31d-3c2f75cde899",
+              "name": "message",
+              "value": "={{ $('WhatsApp Trigger').item.json.messages[0].text.body }}",
+              "type": "string"
+            },
+            {
+              "id": "7c265f6c-bc62-458b-8f5f-b7e3dd907949",
+              "name": "Timestamp",
+              "value": "={{ $json.messages[0].timestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "d1c80d8f-ffd1-44a9-b340-59ffbf6becab",
+              "name": "Name",
+              "value": "={{ $json.contacts[0].profile.name }}",
+              "type": "string"
+            },
+            {
+              "id": "b0f30073-6c2b-4636-a108-6b34dc93d726",
+              "name": "user_id",
+              "value": "={{ $json.contacts[0].wa_id }}",
+              "type": "string"
+            },
+            {
+              "id": "a8c944d1-20ff-48fa-ba66-3fe77a0dd24e",
+              "name": "date",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "5e079cdb-9e32-478b-9cb4-0e563dd426d9",
+              "name": "image",
+              "value": "={{ $json.messages[0].image }}",
+              "type": "object"
+            },
+            {
+              "id": "99acfa71-9ec5-4921-b6d0-6bf40dbfa463",
+              "name": "sticker",
+              "value": "={{ $json.messages[0].sticker }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -848,
+        -272
+      ],
+      "id": "0e3f21c4-3001-4bbb-b09c-1ed9e3afb5d8",
+      "name": "Whatsapp fields",
+      "notesInFlow": true,
+      "notes": "This node stores all the important fields used by the rest of the flow"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2a9b602d-084e-492c-8dc4-e75ef9fa9970",
+              "leftValue": "={{ !$json.image }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -624,
+        -464
+      ],
+      "id": "f23aaf44-363e-4437-844f-65ce3dd05e74",
+      "name": "Messages Type",
+      "notes": "This node triggers in case the message is an image\n"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Whatsapp fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message": {
+      "main": [
+        [
+          {
+            "node": "Update Conversation Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get tenant configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Message Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Active verification": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "To many messages handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Message Summary": {
+      "main": [
+        [
+          {
+            "node": "Active verification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Whatsapp fields": {
+      "main": [
+        [
+          {
+            "node": "Messages Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Messages Type": {
+      "main": [
+        [
+          {
+            "node": "Get tenant configuration",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Image Message Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "America/La_Paz",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "e6e7bf35-6def-468d-9ec5-1b8692ad8969",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "804064df9df8420901f62da4b407ae41e4326deffbd0faa5e9065e071af38215"
+  },
+  "nodeGroups": [],
+  "id": "5Gcr7GUeweDQmA6t",
+  "tags": []
+}
