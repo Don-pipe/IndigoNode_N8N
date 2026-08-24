@@ -151,7 +151,7 @@ comment on view tenant.v_automation_config_all is
   'All active businesses for each WhatsApp line — use business_id filter after location selection.';
 
 -- ---------------------------------------------------------------------------
--- 4) try_match_business — parse 1/2/3 or keyword from patient message
+-- 4) try_match_business — parse 1/2/3, phrase, or keyword tokens from message
 -- ---------------------------------------------------------------------------
 create or replace function messaging_channels.try_match_business(
   p_tenant_id uuid,
@@ -166,6 +166,13 @@ declare
   v_pick integer;
   v_business_id uuid;
   v_count integer;
+  v_tokens text[];
+  v_stopwords text[] := array[
+    'en', 'la', 'el', 'de', 'del', 'los', 'las', 'un', 'una', 'y', 'a', 'al',
+    'por', 'para', 'que', 'con', 'se', 'es', 'lo', 'su', 'mi', 'me', 'sede',
+    'quiero', 'atendido', 'ser', 'desea', 'donde', 'cual', 'cuál', 'numero',
+    'número', 'una', 'uno', 'dos', 'tres'
+  ];
 begin
   if v_msg = '' then
     return null;
@@ -175,6 +182,7 @@ begin
   from tenant.tenant_businesses tb
   where tb.tenant_id = p_tenant_id and tb.is_active = true;
 
+  -- Numeric pick: "1", "2", …
   if v_msg ~ '^\d+$' then
     v_pick := v_msg::integer;
     if v_pick >= 1 and v_pick <= v_count then
@@ -187,6 +195,7 @@ begin
     end if;
   end if;
 
+  -- Full phrase substring (e.g. "sopocachi", "papa león xiii")
   select tb.id into v_business_id
   from tenant.tenant_businesses tb
   where tb.tenant_id = p_tenant_id
@@ -196,6 +205,50 @@ begin
       or lower(coalesce(tb.address, '')) like '%' || v_msg || '%'
     )
   order by tb.created_at
+  limit 1;
+
+  if v_business_id is not null then
+    return v_business_id;
+  end if;
+
+  -- Token match: "en la de sopocachi" → sopocachi; ambiguous tokens → null
+  v_tokens := array(
+    select tok
+    from unnest(
+      regexp_split_to_array(
+        regexp_replace(v_msg, '[^a-z0-9áéíóúñü ]', ' ', 'g'),
+        '\s+'
+      )
+    ) as tok
+    where length(tok) >= 3
+      and not (tok = any (v_stopwords))
+  );
+
+  if coalesce(array_length(v_tokens, 1), 0) = 0 then
+    return null;
+  end if;
+
+  with candidates as (
+    select tb.id, count(distinct tok) as score
+    from tenant.tenant_businesses tb
+    cross join unnest(v_tokens) as tok
+    where tb.tenant_id = p_tenant_id
+      and tb.is_active = true
+      and (
+        lower(tb.name) like '%' || tok || '%'
+        or lower(coalesce(tb.address, '')) like '%' || tok || '%'
+      )
+    group by tb.id
+  ),
+  top_matches as (
+    select c.id
+    from candidates c
+    where c.score = (select max(score) from candidates)
+  )
+  select tm.id
+  into v_business_id
+  from top_matches tm
+  where (select count(*) from top_matches) = 1
   limit 1;
 
   return v_business_id;

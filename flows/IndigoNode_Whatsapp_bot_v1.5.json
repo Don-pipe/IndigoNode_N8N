@@ -478,7 +478,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const routing = $('Process routing').first().json;\nconst brand = routing.welcome_brand_name || 'nuestro consultorio';\nconst menu = Array.isArray(routing.business_menu) ? routing.business_menu : [];\n\nconst lines = menu.map((item) => {\n  const addr = item.address ? ' — ' + item.address : '';\n  return item.index + '. ' + item.name + addr;\n});\n\nconst reply = '¡Hola! Bienvenido a ' + brand + '. ¿En qué sede desea ser atendido?\\n\\n'\n  + lines.join('\\n')\n  + '\\n\\nResponda con el número de la sede.';\n\nreturn [{ json: { reply } }];"
+        "jsCode": "const routing = $('Process routing').first().json;\nconst brand = routing.welcome_brand_name || 'nuestro consultorio';\nconst menu = Array.isArray(routing.business_menu) ? routing.business_menu : [];\n\nconst lines = menu.map((item) => {\n  const addr = item.address ? ' — ' + item.address : '';\n  return item.index + '. ' + item.name + addr;\n});\n\nconst reply = '¡Hola! Bienvenido a ' + brand + '. ¿En qué sede desea ser atendido?\\n\\n'\n  + lines.join('\\n')\n  + '\\n\\nResponda con el número o nombre de la sede (ej. Sopocachi, Papa León).';\n\nreturn [{ json: { reply } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
