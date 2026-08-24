@@ -11,10 +11,10 @@
       "type": "n8n-nodes-base.whatsAppTrigger",
       "typeVersion": 1,
       "position": [
-        -1472,
-        -64
+        464,
+        2944
       ],
-      "id": "fcecfa63-0679-47da-aefb-556ef292517f",
+      "id": "7a3fc6dd-9593-4c70-95da-3d8e004d514a",
       "name": "WhatsApp Trigger",
       "webhookId": "46801fe1-9e41-4409-b864-1a058d8f3c10",
       "credentials": {
@@ -52,10 +52,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -1136,
-        -64
+        800,
+        2944
       ],
-      "id": "0a63ff6f-b4d9-4403-8f31-dc6d88c9e4f7",
+      "id": "bc518311-933d-4ee5-b292-eb75934ca96a",
       "name": "If"
     },
     {
@@ -69,10 +69,10 @@
       "type": "n8n-nodes-base.whatsApp",
       "typeVersion": 1.1,
       "position": [
-        1232,
-        -944
+        3168,
+        1984
       ],
-      "id": "af43a044-2478-47fc-9b4e-d280d303ba41",
+      "id": "090e040f-958e-4203-8d53-968b70d51ba9",
       "name": "Send message",
       "webhookId": "fd017b13-0e51-4025-8030-d4289a8a019a",
       "executeOnce": false,
@@ -93,10 +93,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        544,
-        -944
+        2576,
+        1984
       ],
-      "id": "e94ae7bd-a2e7-43f1-af3c-d7c569a7b4c3",
+      "id": "308fc976-7c3f-4076-bfd3-1a6a7256393d",
       "name": "AI Agent"
     },
     {
@@ -113,10 +113,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        512,
-        -704
+        2576,
+        2304
       ],
-      "id": "20f1be1c-3c2a-4593-acf2-6305b55861f1",
+      "id": "3ddc6972-883d-4f25-ac55-4bdf18c88bdd",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
@@ -134,10 +134,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [
-        -16,
-        -560
+        1936,
+        2544
       ],
-      "id": "69f06f24-6007-43aa-a519-dae7e3677256",
+      "id": "e81ffa05-0d36-456e-8a3e-042be178cbbc",
       "name": "Get tenant configuration",
       "credentials": {
         "postgres": {
@@ -193,10 +193,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        224,
-        -560
+        2160,
+        2544
       ],
-      "id": "f6166672-375b-434d-bb6f-36bf285e4df5",
+      "id": "234a34c7-4e2d-4d46-8e25-e5d66330899e",
       "name": "Active verification"
     },
     {
@@ -208,10 +208,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1472,
-        -944
+        3440,
+        1984
       ],
-      "id": "42bd5ecd-5216-43f1-8ee5-3e9afd22ad7a",
+      "id": "ae808380-6f52-4df8-9bb2-7503848540b5",
       "name": "Update Conversation Summary",
       "credentials": {
         "postgres": {
@@ -227,10 +227,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        944,
-        -944
+        2928,
+        1984
       ],
-      "id": "02031610-4164-43ea-a73c-9ea82b5e56b8",
+      "id": "46839daf-7ab9-43a7-ae60-a610f4a98a7f",
       "name": "Code in JavaScript"
     },
     {
@@ -244,10 +244,10 @@
       "type": "n8n-nodes-base.whatsApp",
       "typeVersion": 1.1,
       "position": [
-        496,
-        -160
+        2432,
+        2848
       ],
-      "id": "a73c9129-1a73-4e50-9c1d-5e0ee2b09090",
+      "id": "bc8af9b8-a2cd-404a-915e-08b9b3506128",
       "name": "To many messages handler",
       "webhookId": "fd017b13-0e51-4025-8030-d4289a8a019a",
       "executeOnce": false,
@@ -266,11 +266,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        368,
-        -352
+        2304,
+        2656
       ],
       "typeVersion": 1,
-      "id": "dfddfbe0-1408-423f-84b9-ac07b73981d0",
+      "id": "623c6f02-7557-46a2-b54d-7506fe09db10",
       "name": "Sticky Note"
     },
     {
@@ -284,10 +284,10 @@
       "type": "n8n-nodes-base.whatsApp",
       "typeVersion": 1.1,
       "position": [
-        -256,
-        -128
+        1680,
+        2880
       ],
-      "id": "1ebb5b5e-6559-4cbc-9cbc-d30828772b24",
+      "id": "51e81504-b763-4511-84a9-2c5c24432772",
       "name": "Image Message Handler",
       "webhookId": "fd017b13-0e51-4025-8030-d4289a8a019a",
       "executeOnce": false,
@@ -306,11 +306,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -352,
-        -288
+        1584,
+        2720
       ],
       "typeVersion": 1,
-      "id": "f282fca7-89cd-4e07-a650-ed9bb227baa2",
+      "id": "89e0f134-5492-426c-951b-f3e8418cdd45",
       "name": "Sticky Note1"
     },
     {
@@ -378,10 +378,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        -848,
-        -272
+        1088,
+        2736
       ],
-      "id": "0e3f21c4-3001-4bbb-b09c-1ed9e3afb5d8",
+      "id": "625d2504-d496-4a89-9e73-01a9c9312be3",
       "name": "Whatsapp fields",
       "notesInFlow": true,
       "notes": "This node stores all the important fields used by the rest of the flow"
@@ -414,10 +414,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -624,
-        -464
+        1312,
+        2544
       ],
-      "id": "f23aaf44-363e-4437-844f-65ce3dd05e74",
+      "id": "270531a1-c7c5-47bd-a1cb-82eb44607258",
       "name": "Messages Type",
       "notes": "This node triggers in case the message is an image\n"
     },
@@ -430,10 +430,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [
-        -288,
-        -560
+        1648,
+        2448
       ],
-      "id": "9e15f342-6fe5-4dd6-b839-953f89001d47",
+      "id": "8de910b5-ff92-49bd-b7e2-dfa73a8996f5",
       "name": "Process routing",
       "credentials": {
         "postgres": {
@@ -470,10 +470,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -48,
-        -720
+        1888,
+        2288
       ],
-      "id": "54280ab1-575b-42fe-817a-600a9caa0878",
+      "id": "5728dcd1-e22e-4b40-b98c-b98797595632",
       "name": "Needs location menu?"
     },
     {
@@ -483,10 +483,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        224,
-        -720
+        2144,
+        1856
       ],
-      "id": "aeaa990b-562f-4ca9-96ce-edc31472ca44",
+      "id": "844734ac-5b4a-4ed4-8bb3-9d7247649447",
       "name": "Location menu"
     },
     {
@@ -500,10 +500,10 @@
       "type": "n8n-nodes-base.whatsApp",
       "typeVersion": 1.1,
       "position": [
-        496,
-        -720
+        2336,
+        1856
       ],
-      "id": "1c0b5244-4573-4439-b718-017bbff846ac",
+      "id": "5bce792d-df89-4544-8770-e44d0789e2f4",
       "name": "Send location menu",
       "webhookId": "fd017b13-0e51-4025-8030-d4289a8a019a",
       "executeOnce": false,
@@ -522,11 +522,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -320,
-        -880
+        1632,
+        2096
       ],
       "typeVersion": 1,
-      "id": "5c327136-7919-4fec-9158-97de493b4cc0",
+      "id": "1f14ecc5-588d-491d-9ec5-24608240e4d3",
       "name": "Sticky Note routing"
     }
   ],
@@ -695,9 +695,14 @@
           }
         ]
       ]
+    },
+    "Send location menu": {
+      "main": [
+        []
+      ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
@@ -706,7 +711,7 @@
     "timezone": "America/La_Paz",
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "versionId": "5ab1e27a-6ef9-4dae-898d-d92672831860",
+  "versionId": "835e2853-71e3-4f66-826c-782482a70c3a",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "804064df9df8420901f62da4b407ae41e4326deffbd0faa5e9065e071af38215"
